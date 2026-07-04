@@ -3,19 +3,20 @@
 Main Python Server for Plivo Integration
 Handles call creation, media streaming, and webhook status
 """
+
 import asyncio
 import json
 import os
 import signal
 import sys
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
-import uvicorn
-from fastapi import FastAPI, Request, HTTPException, WebSocket
-from fastapi.responses import JSONResponse, Response
-from fastapi.middleware.cors import CORSMiddleware
 import plivo
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request, WebSocket
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, Response
 from plivo import plivoxml
 
 from .config import MainControlConfig
@@ -26,6 +27,14 @@ class PlivoCallServer:
 
     def __init__(self, config: MainControlConfig, ten_env=None):
         self.config = config
+        # Normalize public server URL to a bare host (protocols are prepended
+        # when building webhook/media URLs).
+        if self.config.plivo_public_server_url:
+            self.config.plivo_public_server_url = (
+                self.config.plivo_public_server_url.replace("https://", "")
+                .replace("http://", "")
+                .rstrip("/")
+            )
         self.ten_env = ten_env
         self.app = FastAPI(title="Plivo Call Server")
 
@@ -92,9 +101,7 @@ class PlivoCallServer:
 
                 # Configure webhook URL for answering the call
                 if self.config.plivo_public_server_url:
-                    http_protocol = (
-                        "https" if self.config.plivo_use_https else "http"
-                    )
+                    http_protocol = "https" if self.config.plivo_use_https else "http"
                     answer_url = f"{http_protocol}://{self.config.plivo_public_server_url}/webhook/answer"
                     status_url = f"{http_protocol}://{self.config.plivo_public_server_url}/webhook/status"
                 else:
@@ -148,9 +155,7 @@ class PlivoCallServer:
             """End a call by UUID"""
             try:
                 if call_uuid not in self.active_call_sessions:
-                    raise HTTPException(
-                        status_code=404, detail="Call not found"
-                    )
+                    raise HTTPException(status_code=404, detail="Call not found")
 
                 self._log_info(f"Ending call: {call_uuid}")
 
@@ -160,9 +165,9 @@ class PlivoCallServer:
                 # Update session status
                 if call_uuid in self.active_call_sessions:
                     self.active_call_sessions[call_uuid]["status"] = "completed"
-                    self.active_call_sessions[call_uuid][
-                        "ended_at"
-                    ] = datetime.now().isoformat()
+                    self.active_call_sessions[call_uuid]["ended_at"] = (
+                        datetime.now().isoformat()
+                    )
 
                 self._log_info(f"Call {call_uuid} ended successfully")
 
@@ -183,9 +188,7 @@ class PlivoCallServer:
             """Get call status by UUID"""
             try:
                 if call_uuid not in self.active_call_sessions:
-                    raise HTTPException(
-                        status_code=404, detail="Call not found"
-                    )
+                    raise HTTPException(status_code=404, detail="Call not found")
 
                 session = self.active_call_sessions[call_uuid]
 
@@ -202,9 +205,7 @@ class PlivoCallServer:
                 )
 
             except Exception as e:
-                self._log_error(
-                    f"Failed to get call status {call_uuid}: {str(e)}"
-                )
+                self._log_error(f"Failed to get call status {call_uuid}: {str(e)}")
                 raise HTTPException(status_code=500, detail=str(e))
 
         @self.app.get("/api/calls")
@@ -234,7 +235,9 @@ class PlivoCallServer:
 
                 # Build media stream WebSocket URL
                 ws_protocol = "wss" if self.config.plivo_use_wss else "ws"
-                media_ws_url = f"{ws_protocol}://{self.config.plivo_public_server_url}/media"
+                media_ws_url = (
+                    f"{ws_protocol}://{self.config.plivo_public_server_url}/media"
+                )
 
                 self._log_info(f"Media stream URL: {media_ws_url}")
 
@@ -244,17 +247,15 @@ class PlivoCallServer:
                     plivoxml.StreamElement(
                         media_ws_url,
                         bidirectional="true",
-                        keep_call_alive="true",
-                        content_type="audio/x-mulaw;rate=8000",
+                        keepCallAlive="true",
+                        contentType="audio/x-mulaw;rate=8000",
                     )
                 )
 
                 xml_response = response.to_string()
                 self._log_info(f"Plivo XML response: {xml_response}")
 
-                return Response(
-                    content=xml_response, media_type="application/xml"
-                )
+                return Response(content=xml_response, media_type="application/xml")
 
             except Exception as e:
                 self._log_error(f"Failed to handle answer webhook: {str(e)}")
@@ -287,9 +288,9 @@ class PlivoCallServer:
                     self.active_call_sessions[call_uuid]["status"] = call_status
 
                     if call_status in ["completed", "hangup"]:
-                        self.active_call_sessions[call_uuid][
-                            "ended_at"
-                        ] = datetime.now().isoformat()
+                        self.active_call_sessions[call_uuid]["ended_at"] = (
+                            datetime.now().isoformat()
+                        )
 
                 return JSONResponse(content={"success": True})
 
@@ -317,10 +318,10 @@ class PlivoCallServer:
 
             if self.config.plivo_public_server_url:
                 ws_protocol = "wss" if self.config.plivo_use_wss else "ws"
-                http_protocol = (
-                    "https" if self.config.plivo_use_https else "http"
+                http_protocol = "https" if self.config.plivo_use_https else "http"
+                media_ws_url = (
+                    f"{ws_protocol}://{self.config.plivo_public_server_url}/media"
                 )
-                media_ws_url = f"{ws_protocol}://{self.config.plivo_public_server_url}/media"
                 webhook_url = f"{http_protocol}://{self.config.plivo_public_server_url}/webhook/status"
 
             return JSONResponse(
@@ -334,13 +335,9 @@ class PlivoCallServer:
                     ),
                     "use_https": self.config.plivo_use_https,
                     "use_wss": self.config.plivo_use_wss,
-                    "media_stream_enabled": bool(
-                        self.config.plivo_public_server_url
-                    ),
+                    "media_stream_enabled": bool(self.config.plivo_public_server_url),
                     "media_ws_url": media_ws_url,
-                    "webhook_enabled": bool(
-                        self.config.plivo_public_server_url
-                    ),
+                    "webhook_enabled": bool(self.config.plivo_public_server_url),
                     "webhook_url": webhook_url,
                 }
             )
@@ -349,27 +346,19 @@ class PlivoCallServer:
         @self.app.websocket("/media")
         async def websocket_endpoint(websocket: WebSocket):
             """WebSocket endpoint for Plivo media streaming"""
-            self._log_info(
-                f"WebSocket connection attempt from: {websocket.client}"
-            )
+            self._log_info(f"WebSocket connection attempt from: {websocket.client}")
 
             try:
                 # Log connection attempt
-                self._log_info(
-                    f"WebSocket connection attempt from: {websocket.client}"
-                )
+                self._log_info(f"WebSocket connection attempt from: {websocket.client}")
 
                 # Check for required query parameters (Plivo sends these)
                 query_params = websocket.query_params
-                self._log_info(
-                    f"WebSocket query parameters: {dict(query_params)}"
-                )
+                self._log_info(f"WebSocket query parameters: {dict(query_params)}")
 
                 # Accept the connection immediately
                 await websocket.accept()
-                self._log_info(
-                    f"WebSocket connection established: {websocket.client}"
-                )
+                self._log_info(f"WebSocket connection established: {websocket.client}")
 
                 # Send initial message to confirm connection
                 await websocket.send_text(
@@ -382,9 +371,7 @@ class PlivoCallServer:
                 while True:
                     # Receive message from Plivo
                     data = await websocket.receive_text()
-                    self._log_debug(
-                        f"Received WebSocket message: {data[:100]}..."
-                    )
+                    self._log_debug(f"Received WebSocket message: {data[:100]}...")
 
                     # Parse Plivo media stream message
                     try:
@@ -393,9 +380,7 @@ class PlivoCallServer:
                         if message.get("event") == "media":
                             # Extract audio payload
                             # Plivo format: {"event": "media", "media": {"payload": "base64...", "track": "inbound"}}
-                            audio_payload = message.get("media", {}).get(
-                                "payload", ""
-                            )
+                            audio_payload = message.get("media", {}).get("payload", "")
                             stream_id = message.get("streamId", "")
 
                             if audio_payload and call_uuid:
@@ -427,12 +412,12 @@ class PlivoCallServer:
                                     "created_at": datetime.now().isoformat(),
                                 }
 
-                            self.active_call_sessions[call_uuid][
-                                "stream_id"
-                            ] = stream_id
-                            self.active_call_sessions[call_uuid][
-                                "websocket"
-                            ] = websocket
+                            self.active_call_sessions[call_uuid]["stream_id"] = (
+                                stream_id
+                            )
+                            self.active_call_sessions[call_uuid]["websocket"] = (
+                                websocket
+                            )
 
                             # Notify extension that websocket is connected
                             if (
@@ -446,9 +431,7 @@ class PlivoCallServer:
                             self._log_info(f"Media stream stopped: {message}")
 
                     except json.JSONDecodeError:
-                        self._log_debug(
-                            f"Received non-JSON message: {data[:100]}..."
-                        )
+                        self._log_debug(f"Received non-JSON message: {data[:100]}...")
                     except Exception as e:
                         self._log_error(f"Error processing media message: {e}")
 
@@ -528,9 +511,7 @@ async def main():
         or not config.plivo_from_number
     ):
         print("Error: Missing required Plivo configuration")
-        print(
-            "Please set PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN, and PLIVO_FROM_NUMBER"
-        )
+        print("Please set PLIVO_AUTH_ID, PLIVO_AUTH_TOKEN, and PLIVO_FROM_NUMBER")
         sys.exit(1)
 
     # Create and start server

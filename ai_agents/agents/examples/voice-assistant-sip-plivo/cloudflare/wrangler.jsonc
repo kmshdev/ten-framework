@@ -4,32 +4,32 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
   "observability": {
-    "enabled": true
+    "enabled": true,
   },
   "containers": [
     {
       "class_name": "SuperYouAgent",
-      "image": "../Dockerfile.cloudflare",
-      // Build context = ai_agents repo root (Dockerfile COPYs agents/...)
-      "image_build_context": "../../../..",
+      // Pre-built on GitHub Actions (native amd64) and pushed to the
+      // Cloudflare managed registry - see .github/workflows/superyou-image.yml
+      "image": "registry.cloudflare.com/679181db809730be9077df80661a41bd/superyou-voice-agent:9911477fb",
       // TEN runtime + Python STT/LLM/TTS extensions + Next.js need headroom
       // for real-time audio: 2 vCPU / 8 GiB.
       "instance_type": "standard-3",
-      "max_instances": 1
-    }
+      "max_instances": 1,
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "name": "SUPERYOU_AGENT",
-        "class_name": "SuperYouAgent"
-      }
-    ]
+        "class_name": "SuperYouAgent",
+      },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["SuperYouAgent"]
-    }
-  ]
+      "new_sqlite_classes": ["SuperYouAgent"],
+    },
+  ],
 }

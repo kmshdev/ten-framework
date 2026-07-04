@@ -17,7 +17,6 @@ fail() { printf '\033[1;31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
 # --- 0. Preconditions -------------------------------------------------------
 [ -f "$ENV_FILE" ] || fail ".env not found at $ENV_FILE"
-docker info >/dev/null 2>&1 || fail "Docker daemon is not running (needed to build the container image)"
 npx wrangler whoami >/dev/null 2>&1 || fail "wrangler is not authenticated - run: npx wrangler login"
 
 # Read a key from .env (last occurrence wins), stripping quotes.
@@ -47,7 +46,7 @@ log "Installing Worker dependencies"
 npm install --no-fund --no-audit
 
 # --- 2. Deploy Worker + container image ------------------------------------
-log "Deploying to Cloudflare (builds & pushes the container image - first run can take a while)"
+log "Deploying to Cloudflare (uses the pre-built image from the managed registry)"
 DEPLOY_LOG="$(mktemp)"
 npx wrangler deploy 2>&1 | tee "$DEPLOY_LOG"
 
