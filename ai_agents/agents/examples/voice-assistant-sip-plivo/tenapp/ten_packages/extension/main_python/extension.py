@@ -592,11 +592,16 @@ class MainControlExtension(AsyncExtension):
                 call_uuid
             ].get("stream_id")
 
-            # Plivo uses "playAudio" event for outgoing audio
+            # Plivo uses "playAudio" event for outgoing audio.
+            # Per the protocol reference, contentType must be the bare MIME
+            # type with sampleRate as a SEPARATE numeric field — Plivo
+            # silently drops frames whose envelope doesn't match the
+            # Stream XML (audio/x-mulaw @ 8000).
             message = {
                 "event": "playAudio",
                 "media": {
-                    "contentType": "audio/x-mulaw;rate=8000",
+                    "contentType": "audio/x-mulaw",
+                    "sampleRate": 8000,
                     "payload": audio_base64,
                 },
             }
