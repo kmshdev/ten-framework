@@ -12,11 +12,11 @@
               "addon": "deepgram_asr_python",
               "extension_group": "stt",
               "property": {
-                "sample_rate": 8000,
                 "params": {
                   "api_key": "${env:DEEPGRAM_API_KEY}",
                   "model": "nova-3",
-                  "language": "multi"
+                  "language": "multi",
+                  "sample_rate": 8000
                 }
               }
             },
@@ -153,9 +153,7 @@
               "extension": "main_control",
               "cmd": [
                 {
-                  "names": [
-                    "tool_register"
-                  ],
+                  "names": ["tool_register"],
                   "source": [
                     {
                       "extension": "superyou_tools"
@@ -321,9 +319,7 @@
               "extension": "main_control",
               "cmd": [
                 {
-                  "names": [
-                    "tool_register"
-                  ],
+                  "names": ["tool_register"],
                   "source": [
                     {
                       "extension": "superyou_tools"
@@ -487,9 +483,7 @@
               "extension": "main_control",
               "cmd": [
                 {
-                  "names": [
-                    "tool_register"
-                  ],
+                  "names": ["tool_register"],
                   "source": [
                     {
                       "extension": "superyou_tools"

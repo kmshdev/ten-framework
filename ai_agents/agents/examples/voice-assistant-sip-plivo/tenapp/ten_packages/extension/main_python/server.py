@@ -113,8 +113,9 @@ class PlivoCallServer:
                 self._log_info(f"Using answer URL: {answer_url}")
                 self._log_info(f"Using status URL: {status_url}")
 
-                # Create the call using Plivo API
-                response = self.plivo_client.calls.create(
+                # Create the call using Plivo API (sync SDK — off the loop)
+                response = await asyncio.to_thread(
+                    self.plivo_client.calls.create,
                     from_=self.config.plivo_from_number,
                     to_=phone_number,
                     answer_url=answer_url,
@@ -159,8 +160,8 @@ class PlivoCallServer:
 
                 self._log_info(f"Ending call: {call_uuid}")
 
-                # Hangup the call using Plivo API
-                self.plivo_client.calls.delete(call_uuid)
+                # Hangup the call using Plivo API (sync SDK — off the loop)
+                await asyncio.to_thread(self.plivo_client.calls.delete, call_uuid)
 
                 # Update session status
                 if call_uuid in self.active_call_sessions:
@@ -229,18 +230,19 @@ class PlivoCallServer:
                     body = {}
                 reason = (body or {}).get("reason", "")
 
-                # The demo runs one call at a time: pick the live session.
+                # The demo runs one call at a time: pick the session with a
+                # live media websocket (stale sessions are cleaned on hangup,
+                # but never trust a session that can't be talking).
                 call_uuid = next(
                     (
                         cid
                         for cid, s in self.active_call_sessions.items()
-                        if s.get("status")
-                        in ("in-progress", "initiated", "answered", "ringing")
+                        if s.get("websocket") is not None
+                        and s.get("status")
+                        in ("in-progress", "answered", "ringing")
                     ),
                     None,
                 )
-                if call_uuid is None and self.active_call_sessions:
-                    call_uuid = next(iter(self.active_call_sessions))
 
                 self._log_info(
                     f"Transfer requested (reason: {reason}) for call {call_uuid}"
@@ -278,7 +280,8 @@ class PlivoCallServer:
                     f"{http_protocol}://{self.config.plivo_public_server_url}"
                     "/webhook/transfer-xml"
                 )
-                self.plivo_client.calls.transfer(
+                await asyncio.to_thread(
+                    self.plivo_client.calls.transfer,
                     call_uuid,
                     legs="aleg",
                     aleg_url=xml_url,
@@ -355,20 +358,28 @@ class PlivoCallServer:
                 if request.method == "GET":
                     call_uuid = request.query_params.get("CallUUID", "")
                     caller = request.query_params.get("From", "")
+                    to_number = request.query_params.get("To", "")
                     direction = request.query_params.get("Direction", "")
+                    request_uuid = request.query_params.get("RequestUUID", "")
                 else:
                     form_data = await request.form()
                     call_uuid = form_data.get("CallUUID", "")
                     caller = form_data.get("From", "")
+                    to_number = form_data.get("To", "")
                     direction = form_data.get("Direction", "")
+                    request_uuid = form_data.get("RequestUUID", "")
 
                 self._log_info(
                     f"Answer webhook received for call {call_uuid} "
-                    f"from {caller} ({direction})"
+                    f"from {caller} to {to_number} ({direction})"
                 )
 
-                # Record the caller so the agent can personalize the session
-                # (order lookups by phone, mem0 memory, transcripts).
+                # Record the customer's number so the agent can personalize
+                # the session (order lookups by phone, mem0 memory,
+                # transcripts). On OUTBOUND legs Plivo's `From` is our own
+                # Plivo number — the customer is `To`.
+                is_outbound = direction.lower().startswith("outbound")
+                customer = to_number if is_outbound else caller
                 if call_uuid:
                     session = self.active_call_sessions.setdefault(
                         call_uuid,
@@ -378,8 +389,17 @@ class PlivoCallServer:
                             "created_at": datetime.now().isoformat(),
                         },
                     )
-                    if caller:
-                        session["caller"] = caller
+                    # Re-key the pending outbound session (stored under
+                    # Plivo's RequestUUID by create_call) onto the real
+                    # CallUUID so its metadata isn't stranded forever.
+                    if request_uuid and request_uuid in self.active_call_sessions \
+                            and request_uuid != call_uuid:
+                        pending = self.active_call_sessions.pop(request_uuid)
+                        for key in ("phone_number", "message"):
+                            if pending.get(key):
+                                session.setdefault(key, pending[key])
+                    if customer:
+                        session["caller"] = customer
                     session["direction"] = direction
 
                 # Build media stream WebSocket URL
@@ -436,7 +456,16 @@ class PlivoCallServer:
                 if call_uuid in self.active_call_sessions:
                     self.active_call_sessions[call_uuid]["status"] = call_status
 
-                    if call_status in ["completed", "hangup"]:
+                    terminal_statuses = (
+                        "completed",
+                        "hangup",
+                        "failed",
+                        "busy",
+                        "no-answer",
+                        "timeout",
+                        "cancelled",
+                    )
+                    if call_status in terminal_statuses:
                         self.active_call_sessions[call_uuid]["ended_at"] = (
                             datetime.now().isoformat()
                         )
@@ -453,6 +482,10 @@ class PlivoCallServer:
                                 self._log_error(
                                     f"on_call_ended hook failed: {e}"
                                 )
+                        # Drop the session so stale entries never accumulate
+                        # (audio broadcast + transfer selection rely on this).
+                        self.active_call_sessions.pop(call_uuid, None)
+                        self._log_info(f"Session {call_uuid} cleaned up")
 
                 return JSONResponse(content={"success": True})
 
@@ -605,6 +638,11 @@ class PlivoCallServer:
                 except:
                     pass
             finally:
+                # Detach this websocket from any session so the audio
+                # broadcaster never writes to a dead socket.
+                for session in self.active_call_sessions.values():
+                    if session.get("websocket") is websocket:
+                        session.pop("websocket", None)
                 self._log_info("WebSocket connection closed")
 
     async def start_server(self, host: str = "0.0.0.0", port: int = 9000):

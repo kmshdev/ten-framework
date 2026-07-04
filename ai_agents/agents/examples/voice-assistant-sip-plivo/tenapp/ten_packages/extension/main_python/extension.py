@@ -380,7 +380,26 @@ class MainControlExtension(AsyncExtension):
         await _send_data(
             self.ten_env, "tts_flush", "tts", {"flush_id": str(uuid.uuid4())}
         )
-        await _send_cmd(self.ten_env, "flush", "agora_rtc")
+        # Clear Plivo's playback buffer so the agent stops talking
+        # immediately on barge-in (flushing LLM/TTS alone leaves several
+        # seconds of already-queued audio playing).
+        for session in list(
+            self.server_instance.active_call_sessions.values()
+        ):
+            websocket = session.get("websocket")
+            if not websocket:
+                continue
+            try:
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "event": "clearAudio",
+                            "streamId": session.get("stream_id", ""),
+                        }
+                    )
+                )
+            except Exception as e:
+                self.ten_env.log_error(f"clearAudio send failed: {e}")
         self.ten_env.log_info("[MainControlExtension] Interrupt signal sent")
 
     # WebSocket and audio processing methods
