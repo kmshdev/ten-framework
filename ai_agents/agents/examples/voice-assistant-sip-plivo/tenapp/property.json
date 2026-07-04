@@ -2,7 +2,7 @@
   "ten": {
     "predefined_graphs": [
       {
-        "name": "voice_assistant",
+        "name": "va_in_meesho_stack",
         "auto_start": true,
         "graph": {
           "nodes": [
@@ -15,7 +15,8 @@
                 "sample_rate": 8000,
                 "params": {
                   "api_key": "${env:DEEPGRAM_API_KEY}",
-                  "language": "en-US"
+                  "model": "nova-3",
+                  "language": "multi"
                 }
               }
             },
@@ -29,11 +30,11 @@
                 "base_url": "https://api.openai.com/v1",
                 "api_key": "${env:OPENAI_API_KEY}",
                 "frequency_penalty": 0.9,
-                "model": "${env:OPENAI_MODEL}",
+                "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
                 "max_tokens": 512,
-                "prompt": "",
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
                 "proxy_url": "${env:OPENAI_PROXY_URL|}",
-                "greeting": "TEN Agent connected. How can I help you today?"
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
               }
             },
             {
@@ -44,8 +45,8 @@
               "property": {
                 "params": {
                   "key": "${env:ELEVENLABS_TTS_KEY}",
-                  "model_id": "eleven_multilingual_v2",
-                  "voice_id": "pNInz6obpgDQGcFmaJgB",
+                  "model_id": "eleven_flash_v2_5",
+                  "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
                   "output_format": "pcm_16000"
                 },
                 "dump_path": "./",
@@ -58,7 +59,7 @@
               "addon": "main_python",
               "extension_group": "control",
               "property": {
-                "greeting": "Hello, I am your AI assistant.",
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
                 "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
                 "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
                 "plivo_from_number": "${env:PLIVO_FROM_NUMBER}",
@@ -77,12 +78,281 @@
             },
             {
               "type": "extension",
-              "name": "weatherapi_tool_python",
-              "addon": "weatherapi_tool_python",
-              "extension_group": "default",
+              "name": "streamid_adapter",
+              "addon": "streamid_adapter",
+              "property": {}
+            }
+          ],
+          "connections": [
+            {
+              "extension": "streamid_adapter",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "stt"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "stt",
+              "data": [
+                {
+                  "name": "asr_result",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "main_control",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "streamid_adapter"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "tts",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "va_in_sarvam_stack",
+        "auto_start": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "stt",
+              "addon": "sarvam_asr_python",
+              "extension_group": "stt",
               "property": {
-                "api_key": "${env:WEATHERAPI_API_KEY|}"
+                "params": {
+                  "api_key": "${env:SARVAM_API_KEY}",
+                  "model": "saarika:v2.5",
+                  "language": "hi-IN",
+                  "sample_rate": 8000
+                }
               }
+            },
+            {
+              "type": "extension",
+              "name": "llm",
+              "addon": "openai_llm2_python",
+              "extension_group": "chatgpt",
+              "property": {
+                "max_memory_length": 10,
+                "base_url": "https://api.openai.com/v1",
+                "api_key": "${env:OPENAI_API_KEY}",
+                "frequency_penalty": 0.9,
+                "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
+                "max_tokens": 512,
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
+                "proxy_url": "${env:OPENAI_PROXY_URL|}",
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
+              }
+            },
+            {
+              "type": "extension",
+              "name": "tts",
+              "addon": "sarvam_http_tts",
+              "extension_group": "tts",
+              "property": {
+                "params": {
+                  "api_subscription_key": "${env:SARVAM_API_KEY}",
+                  "model": "bulbul:v3",
+                  "target_language_code": "hi-IN",
+                  "speaker": "priya",
+                  "pace": 1.0,
+                  "speech_sample_rate": 16000
+                },
+                "dump_path": "./",
+                "dump": false
+              }
+            },
+            {
+              "type": "extension",
+              "name": "main_control",
+              "addon": "main_python",
+              "extension_group": "control",
+              "property": {
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
+                "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
+                "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
+                "plivo_from_number": "${env:PLIVO_FROM_NUMBER}",
+                "plivo_server_port": 9000,
+                "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
+                "plivo_use_https": true,
+                "plivo_use_wss": true
+              }
+            },
+            {
+              "type": "extension",
+              "name": "message_collector",
+              "addon": "message_collector2",
+              "extension_group": "transcriber",
+              "property": {}
+            },
+            {
+              "type": "extension",
+              "name": "streamid_adapter",
+              "addon": "streamid_adapter",
+              "property": {}
+            }
+          ],
+          "connections": [
+            {
+              "extension": "streamid_adapter",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "stt"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "stt",
+              "data": [
+                {
+                  "name": "asr_result",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "main_control",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "streamid_adapter"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "tts",
+              "audio_frame": [
+                {
+                  "name": "pcm_frame",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "name": "va_in_hybrid_stack",
+        "auto_start": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "stt",
+              "addon": "sarvam_asr_python",
+              "extension_group": "stt",
+              "property": {
+                "params": {
+                  "api_key": "${env:SARVAM_API_KEY}",
+                  "model": "saarika:v2.5",
+                  "language": "hi-IN",
+                  "sample_rate": 8000
+                }
+              }
+            },
+            {
+              "type": "extension",
+              "name": "llm",
+              "addon": "openai_llm2_python",
+              "extension_group": "chatgpt",
+              "property": {
+                "max_memory_length": 10,
+                "base_url": "https://api.openai.com/v1",
+                "api_key": "${env:OPENAI_API_KEY}",
+                "frequency_penalty": 0.9,
+                "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
+                "max_tokens": 512,
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
+                "proxy_url": "${env:OPENAI_PROXY_URL|}",
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
+              }
+            },
+            {
+              "type": "extension",
+              "name": "tts",
+              "addon": "elevenlabs_tts2_python",
+              "extension_group": "tts",
+              "property": {
+                "params": {
+                  "key": "${env:ELEVENLABS_TTS_KEY}",
+                  "model_id": "eleven_flash_v2_5",
+                  "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
+                  "output_format": "pcm_16000"
+                },
+                "dump_path": "./",
+                "dump": false
+              }
+            },
+            {
+              "type": "extension",
+              "name": "main_control",
+              "addon": "main_python",
+              "extension_group": "control",
+              "property": {
+                "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
+                "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
+                "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
+                "plivo_from_number": "${env:PLIVO_FROM_NUMBER}",
+                "plivo_server_port": 9000,
+                "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
+                "plivo_use_https": true,
+                "plivo_use_wss": true
+              }
+            },
+            {
+              "type": "extension",
+              "name": "message_collector",
+              "addon": "message_collector2",
+              "extension_group": "transcriber",
+              "property": {}
             },
             {
               "type": "extension",

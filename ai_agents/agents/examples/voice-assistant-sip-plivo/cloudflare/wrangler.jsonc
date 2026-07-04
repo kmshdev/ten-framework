@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "superyou-voice-agent",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "observability": {
+    "enabled": true
+  },
+  "containers": [
+    {
+      "class_name": "SuperYouAgent",
+      "image": "../Dockerfile.cloudflare",
+      // Build context = ai_agents repo root (Dockerfile COPYs agents/...)
+      "image_build_context": "../../../..",
+      // TEN runtime + Python STT/LLM/TTS extensions + Next.js need headroom
+      // for real-time audio: 2 vCPU / 8 GiB.
+      "instance_type": "standard-3",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SUPERYOU_AGENT",
+        "class_name": "SuperYouAgent"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SuperYouAgent"]
+    }
+  ]
+}
