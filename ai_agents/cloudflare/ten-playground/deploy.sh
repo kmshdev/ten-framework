@@ -18,7 +18,7 @@ npx wrangler whoami >/dev/null 2>&1 || fail "wrangler is not authenticated - run
 gh auth status >/dev/null 2>&1 || fail "GitHub CLI is not authenticated - run: gh auth login"
 
 read_env() {
-  grep -E "^${1}=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//"
+  grep -E "^${1}=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//" || true
 }
 
 REQUIRED_KEYS=(AGORA_APP_ID DEEPGRAM_API_KEY OPENAI_API_KEY ELEVENLABS_TTS_KEY)
@@ -66,7 +66,7 @@ npx wrangler secret bulk "$SECRETS_FILE"
 
 WORKER_URL="$(npx wrangler deployments list 2>/dev/null | grep -Eo "https://${WORKER_NAME}[a-zA-Z0-9.-]*\.workers\.dev" | head -1 || true)"
 if [ -z "$WORKER_URL" ]; then
-  WORKER_URL="https://${WORKER_NAME}.kmshdev.workers.dev"
+  WORKER_URL="https://${WORKER_NAME}.gateway-worker-ai.workers.dev"
 fi
 
 log "Warming up the container"
