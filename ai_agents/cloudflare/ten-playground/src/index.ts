@@ -15,7 +15,7 @@ interface Env {
 
 export class TenPlayground extends Container<Env> {
   defaultPort = 3000;
-  requiredPorts = [8080, 3000];
+  requiredPorts = [8080, 3000, 49483];
   sleepAfter = "2h";
   enableInternet = true;
 
@@ -30,7 +30,7 @@ export class TenPlayground extends Container<Env> {
       WORKER_QUIT_TIMEOUT_SECONDS: "60",
       AGENT_SERVER_URL: "http://127.0.0.1:8080",
       TEN_DEV_SERVER_URL: "http://127.0.0.1:49483",
-      NEXT_PUBLIC_EDIT_GRAPH_MODE: "false",
+      NEXT_PUBLIC_EDIT_GRAPH_MODE: "true",
       AGORA_APP_ID: env.AGORA_APP_ID ?? "",
       AGORA_APP_CERTIFICATE: env.AGORA_APP_CERTIFICATE ?? "",
       DEEPGRAM_API_KEY: env.DEEPGRAM_API_KEY ?? "",
@@ -45,13 +45,17 @@ export class TenPlayground extends Container<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     await this.startAndWaitForPorts({
-      ports: [8080, 3000],
+      ports: [8080, 3000, 49483],
       cancellationOptions: { portReadyTimeoutMS: 120_000 },
     });
 
     const url = new URL(request.url);
     if (url.pathname === "/health") {
       return this.containerFetch(request, 8080);
+    }
+    if (url.pathname === "/designer" || url.pathname.startsWith("/designer/")) {
+      url.pathname = url.pathname.replace(/^\/designer\/?/, "/");
+      return this.containerFetch(new Request(url, request), 49483);
     }
 
     return this.containerFetch(request, 3000);
