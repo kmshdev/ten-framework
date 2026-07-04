@@ -246,8 +246,8 @@ class PlivoCallServer:
                 response.add(
                     plivoxml.StreamElement(
                         media_ws_url,
-                        bidirectional="true",
-                        keepCallAlive="true",
+                        bidirectional=True,
+                        keepCallAlive=True,
                         contentType="audio/x-mulaw;rate=8000",
                     )
                 )
