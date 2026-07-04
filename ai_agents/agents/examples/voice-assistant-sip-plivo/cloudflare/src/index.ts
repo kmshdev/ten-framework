@@ -59,6 +59,12 @@ export class SuperYouAgent extends Container<Env> {
     };
   }
 
+  // RPC used by /admin/restart: hard-stop the container so the next
+  // request boots a fresh instance (new image + secrets, clean state).
+  async destroyContainer(): Promise<void> {
+    await this.destroy();
+  }
+
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -338,6 +344,17 @@ export default {
     // /demo/* is served by the Worker itself - no container involved.
     if (url.pathname.startsWith("/demo/")) {
       return handleDemo(request, url, env);
+    }
+
+    // Ops: force-restart the container (fresh boot picks up the newest
+    // image + secrets, and resets any extension stuck in a fatal state).
+    if (url.pathname === "/admin/restart" && request.method === "POST") {
+      if (request.headers.get("x-admin-token") !== env.PLIVO_AUTH_TOKEN) {
+        return json({ error: "unauthorized" }, 401);
+      }
+      const instance = env.SUPERYOU_AGENT.getByName("superyou-demo");
+      await instance.destroyContainer();
+      return json({ restarted: true });
     }
 
     // Single demo instance: Plivo webhooks, media WS, and the dashboard
