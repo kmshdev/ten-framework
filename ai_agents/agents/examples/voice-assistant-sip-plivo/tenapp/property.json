@@ -32,7 +32,7 @@
                 "frequency_penalty": 0.9,
                 "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
                 "max_tokens": 512,
-                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You handle: order status ('where is my order'), delivery issues, missing/wrong/damaged items, and product or policy questions. TOOLS - always use them, never guess: get_order_status for any order/delivery question (the caller's phone number is in context - use it without asking; only ask for the order number if the phone lookup finds nothing). search_superyou_kb before answering ANY question about products, prices, flavours, nutrition, allergens, shipping, returns or payments. recall_customer_memory when the caller references a previous call, order or complaint ('my last order', 'the issue I reported') or when their history matters. transfer_to_human when the caller asks for a human, is angry, or has a claim you cannot resolve - first tell them you are transferring, then call the tool and relay its message. For wrong/missing item complaints: apologize, confirm the order via get_order_status, tell them a replacement claim is being registered, then transfer_to_human with the details. MEMORY: known facts about this caller from previous calls may appear in context with dates. Use them naturally to personalize ('aapka pichla issue resolve ho gaya tha?') - prefer recent facts over old ones, and never recite the list. LANGUAGE: mirror the caller exactly - Hindi, English or Hinglish. STYLE: this is a phone call - warm, short answers, one or two sentences, no lists, no emojis. Say numbers naturally. When reading tracking updates, summarise: courier name, current status and expected delivery date.",
                 "proxy_url": "${env:OPENAI_PROXY_URL|}",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
               }
@@ -66,7 +66,10 @@
                 "plivo_server_port": 9000,
                 "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
                 "plivo_use_https": true,
-                "plivo_use_wss": true
+                "plivo_use_wss": true,
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "mem0_api_key": "${env:MEM0_API_KEY|}",
+                "human_agent_number": "${env:HUMAN_AGENT_NUMBER|}"
               }
             },
             {
@@ -81,6 +84,16 @@
               "name": "streamid_adapter",
               "addon": "streamid_adapter",
               "property": {}
+            },
+            {
+              "type": "extension",
+              "name": "superyou_tools",
+              "addon": "superyou_tools_python",
+              "extension_group": "default",
+              "property": {
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "plivo_server_port": 9000
+              }
             }
           ],
           "connections": [
@@ -131,6 +144,21 @@
                   "dest": [
                     {
                       "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "main_control",
+              "cmd": [
+                {
+                  "names": [
+                    "tool_register"
+                  ],
+                  "source": [
+                    {
+                      "extension": "superyou_tools"
                     }
                   ]
                 }
@@ -170,7 +198,7 @@
                 "frequency_penalty": 0.9,
                 "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
                 "max_tokens": 512,
-                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You handle: order status ('where is my order'), delivery issues, missing/wrong/damaged items, and product or policy questions. TOOLS - always use them, never guess: get_order_status for any order/delivery question (the caller's phone number is in context - use it without asking; only ask for the order number if the phone lookup finds nothing). search_superyou_kb before answering ANY question about products, prices, flavours, nutrition, allergens, shipping, returns or payments. recall_customer_memory when the caller references a previous call, order or complaint ('my last order', 'the issue I reported') or when their history matters. transfer_to_human when the caller asks for a human, is angry, or has a claim you cannot resolve - first tell them you are transferring, then call the tool and relay its message. For wrong/missing item complaints: apologize, confirm the order via get_order_status, tell them a replacement claim is being registered, then transfer_to_human with the details. MEMORY: known facts about this caller from previous calls may appear in context with dates. Use them naturally to personalize ('aapka pichla issue resolve ho gaya tha?') - prefer recent facts over old ones, and never recite the list. LANGUAGE: mirror the caller exactly - Hindi, English or Hinglish. STYLE: this is a phone call - warm, short answers, one or two sentences, no lists, no emojis. Say numbers naturally. When reading tracking updates, summarise: courier name, current status and expected delivery date.",
                 "proxy_url": "${env:OPENAI_PROXY_URL|}",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
               }
@@ -206,7 +234,10 @@
                 "plivo_server_port": 9000,
                 "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
                 "plivo_use_https": true,
-                "plivo_use_wss": true
+                "plivo_use_wss": true,
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "mem0_api_key": "${env:MEM0_API_KEY|}",
+                "human_agent_number": "${env:HUMAN_AGENT_NUMBER|}"
               }
             },
             {
@@ -221,6 +252,16 @@
               "name": "streamid_adapter",
               "addon": "streamid_adapter",
               "property": {}
+            },
+            {
+              "type": "extension",
+              "name": "superyou_tools",
+              "addon": "superyou_tools_python",
+              "extension_group": "default",
+              "property": {
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "plivo_server_port": 9000
+              }
             }
           ],
           "connections": [
@@ -271,6 +312,21 @@
                   "dest": [
                     {
                       "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "main_control",
+              "cmd": [
+                {
+                  "names": [
+                    "tool_register"
+                  ],
+                  "source": [
+                    {
+                      "extension": "superyou_tools"
                     }
                   ]
                 }
@@ -310,7 +366,7 @@
                 "frequency_penalty": 0.9,
                 "model": "${env:OPENAI_MODEL|gpt-4o-mini}",
                 "max_tokens": 512,
-                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You help customers with order status ('where is my order'), delivery issues, missing or wrong items, and product FAQs. Mirror the caller's language exactly: reply in Hindi, English, or Hinglish, matching how they speak. This is a phone call, so keep replies short and conversational - one or two sentences, no lists, no emojis. If the caller is upset, asks for a human, or you cannot resolve the issue, say you are transferring them to a human agent.",
+                "prompt": "You are Maya, the customer support voice agent for SuperYou (superyou.in), an Indian protein-snacks brand. You handle: order status ('where is my order'), delivery issues, missing/wrong/damaged items, and product or policy questions. TOOLS - always use them, never guess: get_order_status for any order/delivery question (the caller's phone number is in context - use it without asking; only ask for the order number if the phone lookup finds nothing). search_superyou_kb before answering ANY question about products, prices, flavours, nutrition, allergens, shipping, returns or payments. recall_customer_memory when the caller references a previous call, order or complaint ('my last order', 'the issue I reported') or when their history matters. transfer_to_human when the caller asks for a human, is angry, or has a claim you cannot resolve - first tell them you are transferring, then call the tool and relay its message. For wrong/missing item complaints: apologize, confirm the order via get_order_status, tell them a replacement claim is being registered, then transfer_to_human with the details. MEMORY: known facts about this caller from previous calls may appear in context with dates. Use them naturally to personalize ('aapka pichla issue resolve ho gaya tha?') - prefer recent facts over old ones, and never recite the list. LANGUAGE: mirror the caller exactly - Hindi, English or Hinglish. STYLE: this is a phone call - warm, short answers, one or two sentences, no lists, no emojis. Say numbers naturally. When reading tracking updates, summarise: courier name, current status and expected delivery date.",
                 "proxy_url": "${env:OPENAI_PROXY_URL|}",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?"
               }
@@ -344,7 +400,10 @@
                 "plivo_server_port": 9000,
                 "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
                 "plivo_use_https": true,
-                "plivo_use_wss": true
+                "plivo_use_wss": true,
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "mem0_api_key": "${env:MEM0_API_KEY|}",
+                "human_agent_number": "${env:HUMAN_AGENT_NUMBER|}"
               }
             },
             {
@@ -359,6 +418,16 @@
               "name": "streamid_adapter",
               "addon": "streamid_adapter",
               "property": {}
+            },
+            {
+              "type": "extension",
+              "name": "superyou_tools",
+              "addon": "superyou_tools_python",
+              "extension_group": "default",
+              "property": {
+                "demo_api_base": "${env:DEMO_API_BASE|}",
+                "plivo_server_port": 9000
+              }
             }
           ],
           "connections": [
@@ -409,6 +478,21 @@
                   "dest": [
                     {
                       "extension": "main_control"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "extension": "main_control",
+              "cmd": [
+                {
+                  "names": [
+                    "tool_register"
+                  ],
+                  "source": [
+                    {
+                      "extension": "superyou_tools"
                     }
                   ]
                 }

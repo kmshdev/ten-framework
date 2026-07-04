@@ -13,9 +13,39 @@ interface Env {
   WEATHERAPI_API_KEY?: string;
 }
 
+const DESIGNER_PROXY_PORT = 49484;
+const DESIGNER_ROUTE_PREFIXES = [
+  "/api/designer/",
+  "/assets/",
+  "/designer/v1",
+  "/locales/",
+  "/upload/v1",
+];
+const DESIGNER_ROUTE_PATHS = new Set(["/favicon.ico"]);
+
+function isDesignerRoute(pathname: string): boolean {
+  return (
+    pathname === "/designer" ||
+    pathname.startsWith("/designer/") ||
+    DESIGNER_ROUTE_PATHS.has(pathname) ||
+    DESIGNER_ROUTE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  );
+}
+
+function designerRequest(request: Request, url: URL): Request {
+  if (
+    url.pathname === "/designer" ||
+    (url.pathname.startsWith("/designer/") && !url.pathname.startsWith("/designer/v1"))
+  ) {
+    url.pathname = url.pathname.replace(/^\/designer\/?/, "/");
+  }
+
+  return new Request(url.toString(), request);
+}
+
 export class TenPlayground extends Container<Env> {
   defaultPort = 3000;
-  requiredPorts = [8080, 3000, 49484];
+  requiredPorts = [8080, 3000, DESIGNER_PROXY_PORT];
   sleepAfter = "2h";
   enableInternet = true;
 
@@ -45,7 +75,7 @@ export class TenPlayground extends Container<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     await this.startAndWaitForPorts({
-      ports: [8080, 3000, 49484],
+      ports: [8080, 3000, DESIGNER_PROXY_PORT],
       cancellationOptions: { portReadyTimeoutMS: 120_000 },
     });
 
@@ -53,9 +83,8 @@ export class TenPlayground extends Container<Env> {
     if (url.pathname === "/health") {
       return this.containerFetch(request, 8080);
     }
-    if (url.pathname === "/designer" || url.pathname.startsWith("/designer/")) {
-      url.pathname = url.pathname.replace(/^\/designer\/?/, "/");
-      return this.containerFetch(new Request(url, request), 49484);
+    if (isDesignerRoute(url.pathname)) {
+      return this.containerFetch(designerRequest(request, url), DESIGNER_PROXY_PORT);
     }
 
     return this.containerFetch(request, 3000);

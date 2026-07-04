@@ -32,3 +32,17 @@ class MainControlConfig(BaseModel):
         default=True,
         description="Use WSS for media stream (True) or WS (False)",
     )
+
+    # SuperYou demo integrations
+    demo_api_base: str = Field(
+        default="",
+        description="Base URL of the Cloudflare Worker /demo API (transcript persistence)",
+    )
+    mem0_api_key: str = Field(
+        default="",
+        description="mem0.ai API key for caller memory (optional)",
+    )
+    human_agent_number: str = Field(
+        default="",
+        description="Phone number of the human agent for call escalation (optional)",
+    )

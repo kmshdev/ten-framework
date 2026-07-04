@@ -11,7 +11,7 @@
       "class_name": "SuperYouAgent",
       // Pre-built on GitHub Actions (native amd64) and pushed to the
       // Cloudflare managed registry - see .github/workflows/superyou-image.yml
-      "image": "registry.cloudflare.com/679181db809730be9077df80661a41bd/superyou-voice-agent:9911477fb",
+      "image": "registry.cloudflare.com/679181db809730be9077df80661a41bd/superyou-voice-agent:e90c05d39",
       // TEN runtime + Python STT/LLM/TTS extensions + Next.js need headroom
       // for real-time audio: 2 vCPU / 8 GiB.
       "instance_type": "standard-3",
@@ -32,4 +32,22 @@
       "new_sqlite_classes": ["SuperYouAgent"],
     },
   ],
+  // Shopify-shaped demo data (products/orders/fulfillments) + call transcripts
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "superyou-demo",
+      "database_id": "7cff4b44-5a74-419d-9042-0a70495f09d8",
+    },
+  ],
+  // Brand knowledge base (product info + FAQs) embedded with bge-m3
+  "vectorize": [
+    {
+      "binding": "KB",
+      "index_name": "superyou-kb",
+    },
+  ],
+  "ai": {
+    "binding": "AI",
+  },
 }

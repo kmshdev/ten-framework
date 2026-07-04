@@ -1,8 +1,8 @@
-// API client for Twilio Voice Assistant
-const TWILIO_SERVER_URL =
-  process.env.NEXT_PUBLIC_TWILIO_SERVER_URL || "http://localhost:8080";
-const TENAPP_SERVER_URL =
-  process.env.NEXT_PUBLIC_TENAPP_SERVER_URL || "http://localhost:9000";
+// API client for the voice assistant call server.
+// Defaults to same-origin relative paths (the app is served behind the same
+// origin as the backend). Env vars remain as optional overrides for local dev.
+const TWILIO_SERVER_URL = process.env.NEXT_PUBLIC_TWILIO_SERVER_URL || "";
+const TENAPP_SERVER_URL = process.env.NEXT_PUBLIC_TENAPP_SERVER_URL || "";
 
 export interface CallResponse {
   call_sid: string;
@@ -61,7 +61,7 @@ class TwilioAPI {
 
   constructor(
     twilioServerUrl: string = TWILIO_SERVER_URL,
-    tenappServerUrl: string = TENAPP_SERVER_URL
+    tenappServerUrl: string = TENAPP_SERVER_URL,
   ) {
     this.twilioServerUrl = twilioServerUrl;
     this.tenappServerUrl = tenappServerUrl;
@@ -70,7 +70,7 @@ class TwilioAPI {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {},
-    useTenapp: boolean = false
+    useTenapp: boolean = false,
   ): Promise<T> {
     const baseUrl = useTenapp ? this.tenappServerUrl : this.twilioServerUrl;
     const url = `${baseUrl}${endpoint}`;
@@ -98,7 +98,7 @@ class TwilioAPI {
         method: "POST",
         body: JSON.stringify(data),
       },
-      true
+      true,
     ); // Use tenapp server
   }
 
@@ -112,7 +112,7 @@ class TwilioAPI {
       {
         method: "DELETE",
       },
-      true
+      true,
     ); // Use tenapp server
   }
 
