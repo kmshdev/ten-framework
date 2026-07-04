@@ -24,6 +24,7 @@ COPY ${USE_AGENT}/tenapp/scripts/ ${USE_AGENT}/tenapp/scripts/
 
 # Copy extension directories that are actual directories (not symlinks)
 COPY ${USE_AGENT}/tenapp/ten_packages/extension/main_python/ ${USE_AGENT}/tenapp/ten_packages/extension/main_python/
+COPY ${USE_AGENT}/tenapp/ten_packages/extension/superyou_tools_python/ ${USE_AGENT}/tenapp/ten_packages/extension/superyou_tools_python/
 
 # Copy other example files
 COPY ${USE_AGENT}/README.md ${USE_AGENT}/
