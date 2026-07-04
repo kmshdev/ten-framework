@@ -40,6 +40,7 @@ RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommend
     python3-pip \
     python3-dev \
     jq vim \
+    socat \
     ca-certificates \
     curl \
     unzip \
@@ -71,6 +72,6 @@ ENV AGENT_SERVER_URL=http://127.0.0.1:8080
 ENV TEN_DEV_SERVER_URL=http://127.0.0.1:49483
 ENV NEXT_PUBLIC_EDIT_GRAPH_MODE=true
 
-EXPOSE 3000 8080 49483
+EXPOSE 3000 8080 49484
 
 ENTRYPOINT ["/app/container-start.sh"]

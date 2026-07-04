@@ -15,7 +15,7 @@ interface Env {
 
 export class TenPlayground extends Container<Env> {
   defaultPort = 3000;
-  requiredPorts = [8080, 3000, 49483];
+  requiredPorts = [8080, 3000, 49484];
   sleepAfter = "2h";
   enableInternet = true;
 
@@ -45,7 +45,7 @@ export class TenPlayground extends Container<Env> {
 
   override async fetch(request: Request): Promise<Response> {
     await this.startAndWaitForPorts({
-      ports: [8080, 3000, 49483],
+      ports: [8080, 3000, 49484],
       cancellationOptions: { portReadyTimeoutMS: 120_000 },
     });
 
@@ -55,7 +55,7 @@ export class TenPlayground extends Container<Env> {
     }
     if (url.pathname === "/designer" || url.pathname.startsWith("/designer/")) {
       url.pathname = url.pathname.replace(/^\/designer\/?/, "/");
-      return this.containerFetch(new Request(url, request), 49483);
+      return this.containerFetch(new Request(url, request), 49484);
     }
 
     return this.containerFetch(request, 3000);
