@@ -113,11 +113,12 @@ class PlivoCallServer:
                 self._log_info(f"Using answer URL: {answer_url}")
                 self._log_info(f"Using status URL: {status_url}")
 
-                # Create the call using Plivo API (sync SDK — off the loop)
+                # Create the call using Plivo API (sync SDK — off the loop).
+                # Plivo's India trunk rejects E.164 '+' prefixes on `from`.
                 response = await asyncio.to_thread(
                     self.plivo_client.calls.create,
-                    from_=self.config.plivo_from_number,
-                    to_=phone_number,
+                    from_=self.config.plivo_from_number.lstrip("+"),
+                    to_=phone_number.lstrip("+"),
                     answer_url=answer_url,
                     answer_method="POST",
                     hangup_url=status_url,
@@ -380,6 +381,10 @@ class PlivoCallServer:
                 # Plivo number — the customer is `To`.
                 is_outbound = direction.lower().startswith("outbound")
                 customer = to_number if is_outbound else caller
+                # Normalize to E.164-ish so mem0/D1 identity is stable
+                # regardless of whether Plivo sends '+91...' or '91...'.
+                if customer and not customer.startswith("+"):
+                    customer = "+" + customer
                 if call_uuid:
                     session = self.active_call_sessions.setdefault(
                         call_uuid,
