@@ -46,7 +46,7 @@ class LLMExec:
             Callable[[AsyncTenEnv, str, str, bool], Awaitable[None]]
         ] = None
         self.on_tool_call: Optional[
-            Callable[[AsyncTenEnv, str, dict], Awaitable[None]]
+            Callable[[AsyncTenEnv, LLMToolMetadata], Awaitable[None]]
         ] = None
         self.current_task: Optional[asyncio.Task] = None
         self.loop = asyncio.get_event_loop()
@@ -212,15 +212,6 @@ class LLMExec:
                 self.ten_env.log_info(
                     f"_handle_llm_response: invoking tool call {llm_output.name}"
                 )
-                if self.on_tool_call:
-                    try:
-                        await self.on_tool_call(
-                            self.ten_env,
-                            llm_output.name,
-                            llm_output.arguments,
-                        )
-                    except Exception as e:
-                        self.ten_env.log_warn(f"on_tool_call hook error: {e}")
                 src_extension_name = self.tool_registry.get(llm_output.name)
                 result, _ = await _send_cmd(
                     self.ten_env,

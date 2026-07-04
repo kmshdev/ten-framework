@@ -219,133 +219,6 @@ class PlivoCallServer:
                 }
             )
 
-        @self.app.post("/api/transfer")
-        async def transfer_call(request: Request):
-            """Escalate the active call to a human agent (Plivo call transfer)."""
-            try:
-                try:
-                    body = await request.json()
-                except Exception:
-                    body = {}
-                reason = (body or {}).get("reason", "")
-
-                # The demo runs one call at a time: pick the live session.
-                call_uuid = next(
-                    (
-                        cid
-                        for cid, s in self.active_call_sessions.items()
-                        if s.get("status")
-                        in ("in-progress", "initiated", "answered", "ringing")
-                    ),
-                    None,
-                )
-                if call_uuid is None and self.active_call_sessions:
-                    call_uuid = next(iter(self.active_call_sessions))
-
-                self._log_info(
-                    f"Transfer requested (reason: {reason}) for call {call_uuid}"
-                )
-
-                if not call_uuid:
-                    return JSONResponse(
-                        content={
-                            "transferred": False,
-                            "message": "No active call found to transfer.",
-                        }
-                    )
-
-                if not self.config.human_agent_number:
-                    # Demo mode: no human agent number configured. Log the
-                    # escalation so the flow is still visible on the dashboard.
-                    return JSONResponse(
-                        content={
-                            "transferred": False,
-                            "demo_mode": True,
-                            "message": (
-                                "Escalation registered. In production this "
-                                "call would now be bridged to the human "
-                                "support queue. Tell the caller a human agent "
-                                "will call them back within 15 minutes."
-                            ),
-                            "reason": reason,
-                        }
-                    )
-
-                http_protocol = (
-                    "https" if self.config.plivo_use_https else "http"
-                )
-                xml_url = (
-                    f"{http_protocol}://{self.config.plivo_public_server_url}"
-                    "/webhook/transfer-xml"
-                )
-                self.plivo_client.calls.transfer(
-                    call_uuid,
-                    legs="aleg",
-                    aleg_url=xml_url,
-                    aleg_method="POST",
-                )
-                self.active_call_sessions[call_uuid]["status"] = "transferred"
-                return JSONResponse(
-                    content={
-                        "transferred": True,
-                        "message": (
-                            "Call is being connected to a human agent now."
-                        ),
-                        "reason": reason,
-                    }
-                )
-            except Exception as e:
-                self._log_error(f"Failed to transfer call: {str(e)}")
-                return JSONResponse(
-                    content={
-                        "transferred": False,
-                        "message": (
-                            "Transfer failed. Apologize and promise a "
-                            "call-back from a human agent."
-                        ),
-                        "error": str(e),
-                    }
-                )
-
-        @self.app.post("/api/memory/search")
-        async def memory_search(request: Request):
-            """Targeted mem0 recall for the recall_customer_memory tool."""
-            try:
-                try:
-                    body = await request.json()
-                except Exception:
-                    body = {}
-                query = str((body or {}).get("query", "")).strip()
-                ext = getattr(self, "extension_instance", None)
-                if not query or not ext or not getattr(ext, "memory", None):
-                    return JSONResponse(content={"results": []})
-                results = await ext.memory.search(query)
-                return JSONResponse(content={"results": results})
-            except Exception as e:
-                self._log_error(f"memory search failed: {str(e)}")
-                return JSONResponse(content={"results": [], "error": str(e)})
-
-        @self.app.post("/webhook/transfer-xml")
-        @self.app.get("/webhook/transfer-xml")
-        async def transfer_xml():
-            """Plivo XML that bridges the caller to the human agent."""
-            response = plivoxml.ResponseElement()
-            response.add(
-                plivoxml.SpeakElement(
-                    "Please hold while we connect you to a support agent."
-                )
-            )
-            dial = plivoxml.DialElement(
-                caller_id=self.config.plivo_from_number or None
-            )
-            dial.add(
-                plivoxml.NumberElement(self.config.human_agent_number)
-            )
-            response.add(dial)
-            return Response(
-                content=response.to_string(), media_type="application/xml"
-            )
-
         @self.app.post("/webhook/answer")
         @self.app.get("/webhook/answer")
         async def handle_answer_webhook(request: Request):
@@ -354,33 +227,11 @@ class PlivoCallServer:
                 # Get call UUID from request
                 if request.method == "GET":
                     call_uuid = request.query_params.get("CallUUID", "")
-                    caller = request.query_params.get("From", "")
-                    direction = request.query_params.get("Direction", "")
                 else:
                     form_data = await request.form()
                     call_uuid = form_data.get("CallUUID", "")
-                    caller = form_data.get("From", "")
-                    direction = form_data.get("Direction", "")
 
-                self._log_info(
-                    f"Answer webhook received for call {call_uuid} "
-                    f"from {caller} ({direction})"
-                )
-
-                # Record the caller so the agent can personalize the session
-                # (order lookups by phone, mem0 memory, transcripts).
-                if call_uuid:
-                    session = self.active_call_sessions.setdefault(
-                        call_uuid,
-                        {
-                            "call_uuid": call_uuid,
-                            "status": "in-progress",
-                            "created_at": datetime.now().isoformat(),
-                        },
-                    )
-                    if caller:
-                        session["caller"] = caller
-                    session["direction"] = direction
+                self._log_info(f"Answer webhook received for call {call_uuid}")
 
                 # Build media stream WebSocket URL
                 ws_protocol = "wss" if self.config.plivo_use_wss else "ws"
@@ -440,19 +291,6 @@ class PlivoCallServer:
                         self.active_call_sessions[call_uuid]["ended_at"] = (
                             datetime.now().isoformat()
                         )
-                        # Let the extension flush per-call state (mem0 save)
-                        if (
-                            hasattr(self, "extension_instance")
-                            and self.extension_instance
-                        ):
-                            try:
-                                await self.extension_instance.on_call_ended(
-                                    call_uuid
-                                )
-                            except Exception as e:
-                                self._log_error(
-                                    f"on_call_ended hook failed: {e}"
-                                )
 
                 return JSONResponse(content={"success": True})
 

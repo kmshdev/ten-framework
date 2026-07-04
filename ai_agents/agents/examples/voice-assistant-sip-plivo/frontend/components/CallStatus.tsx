@@ -94,9 +94,9 @@ export default function CallStatus({ callSid, onCallEnd }: CallStatusProps) {
   }
 
   return (
-    <div className="card">
+    <div className="rounded-lg bg-white p-6 shadow-md">
       <h3 className="mb-4 flex items-center font-semibold text-gray-900 text-lg">
-        <Phone className="mr-2 h-5 w-5 text-orange-500" />
+        <Phone className="mr-2 h-5 w-5 text-blue-600" />
         Call Status
       </h3>
 

@@ -12,6 +12,8 @@ bin/main
 !*/tenapp/ten_packages/extension/main_realtime_python/**
 !*/tenapp/ten_packages/extension/main_nodejs
 !*/tenapp/ten_packages/extension/main_nodejs/**
+!*/tenapp/ten_packages/extension/superyou_tools_python
+!*/tenapp/ten_packages/extension/superyou_tools_python/**
 
 */tenapp/bin
 

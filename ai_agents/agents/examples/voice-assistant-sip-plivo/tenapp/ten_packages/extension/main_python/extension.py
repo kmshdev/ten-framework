@@ -30,9 +30,6 @@ from .agent.events import (
 )
 from .helper import _send_cmd, _send_data, parse_sentences
 from .config import MainControlConfig
-from .memory import CallMemory
-
-from ten_ai_base.struct import LLMMessageContent
 
 import uuid
 
@@ -61,7 +58,6 @@ class MainControlExtension(AsyncExtension):
         self.sentence_fragment: str = ""
         self.turn_id: int = 0
         self.session_id: str = "0"
-        self.memory: Optional[CallMemory] = None
 
     def _current_metadata(self) -> dict:
         return {"session_id": self.session_id, "turn_id": self.turn_id}
@@ -79,23 +75,6 @@ class MainControlExtension(AsyncExtension):
         self.ten_env.log_info(f"Config11: {self.config}")
 
         self.agent = Agent(ten_env)
-
-        # Caller memory (mem0) + transcript persistence (Worker /demo API)
-        self.memory = CallMemory(
-            ten_env,
-            mem0_api_key=self.config.mem0_api_key,
-            demo_api_base=self.config.demo_api_base,
-        )
-        await self.memory.start()
-
-        # Log LLM tool invocations to the transcript stream so the
-        # dashboard shows the agent's actions (order lookup, KB, transfer).
-        async def _on_tool_call(_ten_env, name: str, arguments: dict):
-            self.memory.record_turn(
-                "tool", f"{name}({json.dumps(arguments, ensure_ascii=False)})"
-            )
-
-        self.agent.llm_exec.on_tool_call = _on_tool_call
 
         # Now auto-register decorated methods
         for attr_name in dir(self):
@@ -224,7 +203,6 @@ class MainControlExtension(AsyncExtension):
         if event.final:
             self.turn_id += 1
             await self.agent.queue_llm_input(event.text)
-            self.memory.record_turn("user", event.text)
         await self._send_transcript("user", event.text, event.final, stream_id)
 
     @agent_event_handler(LLMResponseEvent)
@@ -240,7 +218,6 @@ class MainControlExtension(AsyncExtension):
             remaining_text = self.sentence_fragment or ""
             self.sentence_fragment = ""
             await self._send_to_tts(remaining_text, True)
-            self.memory.record_turn("assistant", event.text)
 
         await self._send_transcript(
             "assistant",
@@ -272,10 +249,6 @@ class MainControlExtension(AsyncExtension):
 
         # Stop the server
         await self._stop_server()
-
-        if self.memory:
-            await self.memory.save()
-            await self.memory.stop()
 
         await self.agent.stop()
 
@@ -604,59 +577,12 @@ class MainControlExtension(AsyncExtension):
                 f"WebSocket connected for call {call_uuid}, sending greeting TTS"
             )
 
-            # Bind this call to the memory/transcript layer. The caller's
-            # number arrives via the answer webhook (inbound) or the call
-            # API (outbound).
-            session = self.server_instance.active_call_sessions.get(
-                call_uuid, {}
-            )
-            caller = session.get("caller") or session.get("phone_number", "")
-            self.memory.begin_call(call_uuid, caller)
-
-            # Continual learning (mem0): recall what we know about this
-            # caller and prime the LLM context before the first turn.
-            memory_block = await self.memory.recall()
-            if memory_block:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            "Known facts about this caller from previous "
-                            f"interactions (mem0):\n{memory_block}\n"
-                            "Use them naturally; do not recite them."
-                        ),
-                    )
-                )
-            if caller:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            f"The caller's phone number is {caller}. Use it "
-                            "for order lookups without asking for it again."
-                        ),
-                    )
-                )
-
             # Send greeting TTS using the configured greeting message
             greeting_text = self.config.greeting
             await self._send_to_tts(greeting_text, True)
-            self.memory.record_turn("assistant", greeting_text)
 
             self.ten_env.log_info(
                 f"Greeting TTS sent for call {call_uuid}: {greeting_text}"
             )
         except Exception as e:
             self.ten_env.log_error(f"Failed to send greeting TTS: {str(e)}")
-
-    async def on_call_ended(self, call_uuid: str):
-        """Called by the server when Plivo reports the call finished."""
-        try:
-            if self.memory and self.memory.call_uuid == call_uuid:
-                await self.memory.save()
-                self.memory.begin_call("", "")
-            # Reset conversational state for the next call
-            self.agent.llm_exec.contexts.clear()
-            self.turn_id = 0
-        except Exception as e:
-            self.ten_env.log_error(f"on_call_ended failed: {e}")

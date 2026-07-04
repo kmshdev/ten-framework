@@ -17,7 +17,7 @@ export default function InboundCallModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="mx-4 w-full max-w-md rounded-2xl bg-white shadow-xl">
+      <div className="mx-4 w-full max-w-md rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b p-6">
           <h2 className="flex items-center font-semibold text-gray-900 text-xl">
             <Phone className="mr-2 h-5 w-5 text-green-600" />

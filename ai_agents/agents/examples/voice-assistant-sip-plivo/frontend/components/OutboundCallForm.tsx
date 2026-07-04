@@ -19,7 +19,7 @@ export default function OutboundCallForm({
 }: OutboundCallFormProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [message, setMessage] = useState(
-    "Hello, this is a call from the AI assistant.",
+    "Hello, this is a call from the AI assistant."
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -33,9 +33,9 @@ export default function OutboundCallForm({
   };
 
   return (
-    <div className="card">
+    <div className="rounded-lg bg-white p-6 shadow-md">
       <h2 className="mb-4 flex items-center font-semibold text-gray-900 text-xl">
-        <Phone className="mr-2 h-5 w-5 text-orange-500" />
+        <Phone className="mr-2 h-5 w-5 text-blue-600" />
         Initiate Outbound Call
       </h2>
 
