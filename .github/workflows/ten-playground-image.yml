@@ -1,0 +1,49 @@
+name: Build and deploy TEN playground
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Free up runner disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ai_agents
+          file: ai_agents/cloudflare/ten-playground/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ten-playground:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push to Cloudflare managed registry
+        working-directory: ai_agents/cloudflare/ten-playground
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npm install --no-fund --no-audit
+          npx wrangler containers push ten-playground:${{ github.sha }}
+
+      - name: Deploy Worker with the new image tag
+        working-directory: ai_agents/cloudflare/ten-playground
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          sed -i -E "s|\"image\": \"[^\"]+\"|\"image\": \"registry.cloudflare.com/${CLOUDFLARE_ACCOUNT_ID}/ten-playground:${{ github.sha }}\"|" wrangler.jsonc
+          npx wrangler deploy
