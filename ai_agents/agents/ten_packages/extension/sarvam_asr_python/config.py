@@ -6,8 +6,9 @@ from ten_ai_base.utils import encrypt
 class SarvamASRConfig(BaseModel):
     api_key: str = ""
     url: str = "wss://api.sarvam.ai/speech-to-text/ws"
-    language: str = "en-IN"  # BCP-47 language code, e.g., "hi-IN", "en-IN"
-    model: str = "saarika:v2.5"  # "saarika:v2.5", "saarika:v2.0", "saaras:v2.5"
+    language: str = "unknown"  # BCP-47 code ("hi-IN", "en-IN") or "unknown" for auto-detect
+    model: str = "saaras:v3"  # "saaras:v3" (recommended), "saarika:v2.5" (legacy)
+    mode: str = "transcribe"  # saaras:v3 only: transcribe|translate|verbatim|translit|codemix
     sample_rate: int = 16000
     prompt: str | None = (
         None  # Optional prompt for STT translate (saaras models only)

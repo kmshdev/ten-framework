@@ -118,8 +118,13 @@ class SarvamASRExtension(AsyncASRBaseExtension):
         params = {
             "language-code": self.config.language,
             "model": self.config.model,
+            # 8 kHz input is only supported via this connection-level param
+            # (per-message AudioData sample_rate does not allow 8000).
+            "sample_rate": str(self.config.sample_rate),
             "vad_signals": "false",
         }
+        if self.config.model.startswith("saaras") and self.config.mode:
+            params["mode"] = self.config.mode
 
         return f"{ws_url}?{urlencode(params)}"
 
