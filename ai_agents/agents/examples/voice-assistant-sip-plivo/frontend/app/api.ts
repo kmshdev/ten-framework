@@ -153,6 +153,9 @@ class CallAPI {
 
 // Export singleton instance
 export const callAPI = new CallAPI();
+// Backwards-compatible alias for existing console code. The backend is Plivo,
+// not Twilio, but older UI files still import this name.
+export const twilioAPI = callAPI;
 
 // Export class for custom instances
 export { CallAPI };
