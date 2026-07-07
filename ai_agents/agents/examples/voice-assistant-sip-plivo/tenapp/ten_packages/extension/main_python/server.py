@@ -239,8 +239,7 @@ class PlivoCallServer:
                         cid
                         for cid, s in self.active_call_sessions.items()
                         if s.get("websocket") is not None
-                        and s.get("status")
-                        in ("in-progress", "answered", "ringing")
+                        and s.get("status") in ("in-progress", "answered", "ringing")
                     ),
                     None,
                 )
@@ -260,23 +259,24 @@ class PlivoCallServer:
                 if not self.config.human_agent_number:
                     # Demo mode: no human agent number configured. Log the
                     # escalation so the flow is still visible on the dashboard.
+                    # NOTE: "transferred" stays true-ish for the LLM: a false
+                    # flag here made the model apologize for a failed transfer
+                    # instead of promising the callback.
                     return JSONResponse(
                         content={
-                            "transferred": False,
+                            "escalation_registered": True,
                             "demo_mode": True,
                             "message": (
-                                "Escalation registered. In production this "
-                                "call would now be bridged to the human "
-                                "support queue. Tell the caller a human agent "
-                                "will call them back within 15 minutes."
+                                "Escalation registered successfully. Tell the "
+                                "caller a human support agent will call them "
+                                "back within 15 minutes. Do NOT apologize or "
+                                "say the transfer failed."
                             ),
                             "reason": reason,
                         }
                     )
 
-                http_protocol = (
-                    "https" if self.config.plivo_use_https else "http"
-                )
+                http_protocol = "https" if self.config.plivo_use_https else "http"
                 xml_url = (
                     f"{http_protocol}://{self.config.plivo_public_server_url}"
                     "/webhook/transfer-xml"
@@ -292,9 +292,7 @@ class PlivoCallServer:
                 return JSONResponse(
                     content={
                         "transferred": True,
-                        "message": (
-                            "Call is being connected to a human agent now."
-                        ),
+                        "message": ("Call is being connected to a human agent now."),
                         "reason": reason,
                     }
                 )
@@ -339,16 +337,10 @@ class PlivoCallServer:
                     "Please hold while we connect you to a support agent."
                 )
             )
-            dial = plivoxml.DialElement(
-                caller_id=self.config.plivo_from_number or None
-            )
-            dial.add(
-                plivoxml.NumberElement(self.config.human_agent_number)
-            )
+            dial = plivoxml.DialElement(caller_id=self.config.plivo_from_number or None)
+            dial.add(plivoxml.NumberElement(self.config.human_agent_number))
             response.add(dial)
-            return Response(
-                content=response.to_string(), media_type="application/xml"
-            )
+            return Response(content=response.to_string(), media_type="application/xml")
 
         @self.app.post("/webhook/answer")
         @self.app.get("/webhook/answer")
@@ -397,8 +389,11 @@ class PlivoCallServer:
                     # Re-key the pending outbound session (stored under
                     # Plivo's RequestUUID by create_call) onto the real
                     # CallUUID so its metadata isn't stranded forever.
-                    if request_uuid and request_uuid in self.active_call_sessions \
-                            and request_uuid != call_uuid:
+                    if (
+                        request_uuid
+                        and request_uuid in self.active_call_sessions
+                        and request_uuid != call_uuid
+                    ):
                         pending = self.active_call_sessions.pop(request_uuid)
                         for key in ("phone_number", "message"):
                             if pending.get(key):
@@ -480,13 +475,9 @@ class PlivoCallServer:
                             and self.extension_instance
                         ):
                             try:
-                                await self.extension_instance.on_call_ended(
-                                    call_uuid
-                                )
+                                await self.extension_instance.on_call_ended(call_uuid)
                             except Exception as e:
-                                self._log_error(
-                                    f"on_call_ended hook failed: {e}"
-                                )
+                                self._log_error(f"on_call_ended hook failed: {e}")
                         # Drop the session so stale entries never accumulate
                         # (audio broadcast + transfer selection rely on this).
                         self.active_call_sessions.pop(call_uuid, None)
