@@ -4,48 +4,73 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* SuperYou Voice Agent Console — Quiet Stage tokens.
-   See ../.interface-design/system.md for the full system. */
+/* SuperYou Voice Agent Console — Signal Desk tokens.
+   The interface is a voice-ops surface: dark acoustic room, warm LEDs,
+   red agent signal, and quiet layered panels around the LiveKit visualizer. */
 @theme {
-    --color-paper: #f8f3e9;
-    --color-paper-warm: #f2eadc;
-    --color-panel: #fffdf8;
-    --color-elevated: #fffaf0;
-    --color-card: #fffdf8;
-    --color-control: #f2ecdf;
-    --color-control-hover: #ece2d1;
-    --color-inset: #eee6d8;
-    --color-ink: #241f18;
-    --color-ink-secondary: #5a5147;
-    --color-ink-tertiary: #7e7468;
-    --color-ink-faint: #aaa195;
-    --color-ink-2: #5a5147;
-    --color-ink-3: #7e7468; /* tertiary: metadata, small mono — AA at 10.5px */
-    --color-ink-mute: #aaa195; /* decorative only: arrows, inactive dots */
-    --color-line: rgba(36, 31, 24, 0.14);
-    --color-line-soft: rgba(36, 31, 24, 0.08);
-    --color-hairline: rgba(36, 31, 24, 0.14);
-    --color-hairline-soft: rgba(36, 31, 24, 0.08);
-    --color-voice: #e22518; /* visualizer, logo, agent dot, end-call. Nothing else. */
-    --color-voice-soft: rgba(226, 37, 24, 0.1);
-    --color-ok: #2f7a4a;
-    --color-ok-bg: rgba(47, 122, 74, 0.1);
-    --color-attention: #9a5810;
-    --color-attention-bg: rgba(154, 88, 16, 0.1);
+    --color-paper: #0f0e0c;
+    --color-paper-warm: #17130f;
+    --color-panel: #181612;
+    --color-elevated: #211d17;
+    --color-card: #1b1813;
+    --color-control: #242016;
+    --color-control-hover: #2c261a;
+    --color-inset: #0b0a09;
+    --color-ink: #fff8e8;
+    --color-ink-secondary: #d7c9ad;
+    --color-ink-tertiary: #9f927d;
+    --color-ink-faint: #6e6252;
+    --color-ink-2: #d7c9ad;
+    --color-ink-3: #9f927d; /* tertiary: metadata, small mono */
+    --color-ink-mute: #6e6252; /* decorative only: inactive dots */
+    --color-line: rgba(255, 231, 184, 0.16);
+    --color-line-soft: rgba(255, 231, 184, 0.08);
+    --color-hairline: rgba(255, 231, 184, 0.16);
+    --color-hairline-soft: rgba(255, 231, 184, 0.08);
+    --color-voice: #ff3b2e; /* visualizer, logo, agent dot, end-call. Nothing else. */
+    --color-voice-soft: rgba(255, 59, 46, 0.14);
+    --color-ok: #75d28a;
+    --color-ok-bg: rgba(117, 210, 138, 0.12);
+    --color-attention: #f6b65b;
+    --color-attention-bg: rgba(246, 182, 91, 0.13);
 
-    --font-brand: var(--font-antonio), sans-serif;
-    --font-body: var(--font-archivo), sans-serif;
-    --font-mono: var(--font-jetbrains), monospace;
+    --font-body: var(--font-source-serif), Charter, Georgia, serif;
+    --font-heading: var(--font-archivo), Arial, sans-serif;
+    --font-ui: var(--font-archivo), Arial, sans-serif;
+    --font-mono: var(--font-jetbrains), "SFMono-Regular", Consolas, monospace;
+
+    --font-size-base: clamp(1rem, 0.95rem + 0.22vw, 1.125rem);
+    --font-size-small: clamp(0.8125rem, 0.78rem + 0.12vw, 0.875rem);
+    --font-size-caption: clamp(0.6875rem, 0.66rem + 0.08vw, 0.75rem);
+    --font-size-h3: clamp(1.2rem, 1.08rem + 0.45vw, 1.40625rem);
+    --font-size-h2: clamp(1.44rem, 1.24rem + 0.78vw, 1.7578125rem);
+    --font-size-h1: clamp(1.728rem, 1.42rem + 1.18vw, 2.197265625rem);
+    --line-height-base: 1.4;
+    --line-height-tight: 1.3;
+    --line-height-caption: 1.35;
+    --measure: 65ch;
+    --measure-ui: 46ch;
+    --measure-compact: 32ch;
 
     --radius-sm: 3px;
     --radius-md: 6px;
 }
 
 body {
+    --type-body: var(--font-source-serif), Charter, Georgia, serif;
+    --type-heading: var(--font-archivo), Arial, sans-serif;
+    --type-ui: var(--font-archivo), Arial, sans-serif;
+    --type-mono: var(--font-jetbrains), "SFMono-Regular", Consolas, monospace;
+
     background:
         radial-gradient(
-            circle at 50% 14%,
-            rgba(226, 37, 24, 0.07),
+            circle at 50% 12%,
+            rgba(255, 59, 46, 0.16),
+            transparent 24rem
+        ),
+        radial-gradient(
+            circle at 18% 75%,
+            rgba(246, 182, 91, 0.08),
             transparent 22rem
         ),
         linear-gradient(
@@ -55,7 +80,14 @@ body {
         );
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
-    text-rendering: geometricPrecision;
+    text-rendering: optimizeLegibility;
+    font-family: var(--type-body);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-base);
+    font-kerning: normal;
+    font-optical-sizing: auto;
+    font-variant-numeric: oldstyle-nums;
+    text-wrap: pretty;
 }
 
 /* Single entrance motion for tape entries (the visualizer is the only
@@ -102,8 +134,8 @@ details.trace[open] .trace-arrow {
 }
 
 @theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
+    --font-heading: var(--type-ui);
+    --font-sans: var(--type-ui);
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -217,33 +249,168 @@ details.trace[open] .trace-arrow {
     * {
         @apply border-border outline-ring/50;
     }
-    body {
-        @apply bg-background text-foreground;
-    }
     html {
         @apply font-body;
+        font-kerning: normal;
+        font-optical-sizing: auto;
+    }
+    body {
+        @apply bg-background text-foreground;
+        --type-body: var(--font-source-serif), Charter, Georgia, serif;
+        --type-heading: var(--font-archivo), Arial, sans-serif;
+        --type-ui: var(--font-archivo), Arial, sans-serif;
+        --type-mono:
+            var(--font-jetbrains), "SFMono-Regular", Consolas, monospace;
+        font-family: var(--type-body);
+        font-size: var(--font-size-base);
+        line-height: var(--line-height-base);
+        font-variant-numeric: oldstyle-nums;
+        text-wrap: pretty;
+    }
+    h1,
+    h2,
+    h3 {
+        font-family: var(--type-heading);
+        font-weight: 700;
+        line-height: var(--line-height-tight);
+        text-wrap: balance;
+    }
+    p,
+    li {
+        max-width: var(--measure);
+    }
+    p + p {
+        margin-top: calc(var(--font-size-base) * var(--line-height-base));
     }
 }
 
-/* ---- Quiet Stage overrides of the generated shadcn theme ----
-   Keep shadcn/agents-ui components on our palette and sharp radii.
+@layer components {
+    .type-display {
+        font-family: var(--type-heading);
+        font-size: var(--font-size-h1);
+        line-height: var(--line-height-tight);
+        font-weight: 700;
+        text-wrap: balance;
+    }
+
+    .type-title {
+        font-family: var(--type-heading);
+        font-size: var(--font-size-h3);
+        line-height: var(--line-height-tight);
+        font-weight: 700;
+        text-wrap: balance;
+    }
+
+    .type-ui {
+        font-family: var(--type-ui);
+        font-size: var(--font-size-small);
+        line-height: var(--line-height-base);
+        font-weight: 600;
+        text-wrap: pretty;
+    }
+
+    .type-body {
+        font-family: var(--type-body);
+        font-size: var(--font-size-base);
+        line-height: var(--line-height-base);
+        font-weight: 450;
+        max-width: var(--measure);
+        text-wrap: pretty;
+    }
+
+    .type-small {
+        font-family: var(--type-body);
+        font-size: var(--font-size-small);
+        line-height: var(--line-height-base);
+        max-width: var(--measure-ui);
+        text-wrap: pretty;
+    }
+
+    .type-caption {
+        font-family: var(--type-ui);
+        font-size: var(--font-size-caption);
+        line-height: var(--line-height-caption);
+        font-weight: 600;
+        max-width: var(--measure-compact);
+        text-wrap: pretty;
+    }
+
+    .type-caps {
+        font-family: var(--type-ui);
+        font-size: var(--font-size-caption);
+        line-height: var(--line-height-caption);
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        text-wrap: balance;
+    }
+
+    .type-mono {
+        font-family: var(--type-mono);
+        font-size: var(--font-size-caption);
+        line-height: var(--line-height-caption);
+        font-variant-numeric: tabular-nums;
+    }
+
+    .type-number {
+        font-family: var(--type-mono);
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/* ---- Signal Desk overrides of the generated shadcn theme ----
+   Keep shadcn/agents-ui components on our voice-console palette.
    (Declared after the generated blocks so they win the cascade.) */
 @theme {
     --radius-sm: 3px;
     --radius-md: 6px;
-    --font-sans: var(--font-archivo), sans-serif;
+    --font-sans: var(--type-ui);
 }
 
 :root {
-    --background: #f8f3e9;
-    --foreground: #241f18;
-    --card-foreground: #241f18;
-    --popover-foreground: #241f18;
-    --primary: #241f18;
-    --muted-foreground: #7e7468;
-    --border: rgba(36, 31, 24, 0.14);
-    --input: rgba(36, 31, 24, 0.14);
-    --ring: rgba(226, 37, 24, 0.4);
-    --destructive: #e22518;
-    --radius: 0.75rem;
+    --background: #0f0e0c;
+    --foreground: #fff8e8;
+    --card: #1b1813;
+    --card-foreground: #fff8e8;
+    --popover: #211d17;
+    --popover-foreground: #fff8e8;
+    --primary: #ff3b2e;
+    --primary-foreground: #fff8e8;
+    --secondary: #242016;
+    --secondary-foreground: #d7c9ad;
+    --muted: #181612;
+    --muted-foreground: #9f927d;
+    --accent: rgba(255, 59, 46, 0.14);
+    --accent-foreground: #fff8e8;
+    --border: rgba(255, 231, 184, 0.16);
+    --input: rgba(255, 231, 184, 0.16);
+    --ring: rgba(255, 59, 46, 0.45);
+    --destructive: #ff3b2e;
+    --sidebar: #181612;
+    --sidebar-foreground: #fff8e8;
+    --sidebar-border: rgba(255, 231, 184, 0.16);
+    --sidebar-ring: rgba(255, 59, 46, 0.45);
+    --radius: 0.9rem;
+
+    /* LiveKit Components theme bridge. The app uses custom agent components now,
+       but any default LiveKit component inherits this Signal Desk type/color system. */
+    --lk-font-family: var(--type-ui);
+    --lk-fg: var(--color-ink);
+    --lk-fg-secondary: var(--color-ink-secondary);
+    --lk-fg-tertiary: var(--color-ink-tertiary);
+    --lk-bg: var(--color-paper);
+    --lk-bg-secondary: var(--color-panel);
+    --lk-bg-tertiary: var(--color-control);
+    --lk-accent-fg: #ffffff;
+    --lk-accent-bg: var(--color-voice);
+    --lk-control-fg: var(--color-ink-secondary);
+    --lk-control-bg: var(--color-control);
+    --lk-danger: var(--color-voice);
+    --lk-danger-fg: #ffffff;
+    --lk-danger-bg: var(--color-voice-soft);
+    --lk-success: var(--color-ok);
+    --lk-success-bg: var(--color-ok-bg);
+    --lk-connection-excellent: var(--color-ok);
+    --lk-connection-good: var(--color-attention);
+    --lk-connection-poor: var(--color-voice);
 }

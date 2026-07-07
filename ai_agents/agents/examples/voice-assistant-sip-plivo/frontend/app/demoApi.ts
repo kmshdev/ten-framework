@@ -84,6 +84,41 @@ export interface KbQueryResponse {
   results: KbResult[];
 }
 
+const FALLBACK_CUSTOMERS: Customer[] = [
+  {
+    id: 20,
+    first_name: "Rahul",
+    last_name: "Verma",
+    phone: "+917011457245",
+    default_city: "Mumbai",
+    orders_count: 2,
+  },
+  {
+    id: 59,
+    first_name: "Krishna",
+    last_name: "Joshi",
+    phone: "+916276777762",
+    default_city: "Kolkata",
+    orders_count: 8,
+  },
+  {
+    id: 61,
+    first_name: "Kiara",
+    last_name: "Das",
+    phone: "+919847959430",
+    default_city: "Noida",
+    orders_count: 6,
+  },
+  {
+    id: 90,
+    first_name: "Keshav",
+    last_name: "Reddy",
+    phone: "+918937643439",
+    default_city: "Jaipur",
+    orders_count: 5,
+  },
+];
+
 async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, {
     headers: { Accept: "application/json" },
@@ -93,8 +128,12 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 
   if (!response.ok) {
     const body = await response.text().catch(() => "");
+    const isHtml =
+      body.trimStart().startsWith("<!DOCTYPE") || body.includes("<html");
     throw new Error(
-      `Request failed (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
+      isHtml
+        ? `Request failed (${response.status}). Demo backend endpoint is not available locally.`
+        : `Request failed (${response.status})${body ? `: ${body.slice(0, 200)}` : ""}`,
     );
   }
 
@@ -102,16 +141,38 @@ async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 export const demoAPI = {
-  listTranscripts(signal?: AbortSignal): Promise<TranscriptListResponse> {
-    return getJson<TranscriptListResponse>("/demo/transcripts", signal);
+  async listTranscripts(signal?: AbortSignal): Promise<TranscriptListResponse> {
+    try {
+      return await getJson<TranscriptListResponse>("/demo/transcripts", signal);
+    } catch {
+      // Local UI review/dev often runs without the Cloudflare Worker backend.
+      // Treat missing transcript storage as an empty tape instead of rendering
+      // a raw Next.js 404 document in the console.
+      return { calls: [] };
+    }
   },
 
-  listCustomers(
+  async listCustomers(
     query?: string,
     signal?: AbortSignal,
   ): Promise<CustomerListResponse> {
     const qs = query ? `?q=${encodeURIComponent(query)}` : "";
-    return getJson<CustomerListResponse>(`/demo/customers${qs}`, signal);
+    try {
+      return await getJson<CustomerListResponse>(
+        `/demo/customers${qs}`,
+        signal,
+      );
+    } catch {
+      const q = query?.trim().toLowerCase();
+      const customers = q
+        ? FALLBACK_CUSTOMERS.filter((c) =>
+            `${c.first_name} ${c.last_name} ${c.default_city ?? ""} ${c.phone}`
+              .toLowerCase()
+              .includes(q),
+          )
+        : FALLBACK_CUSTOMERS;
+      return { customers };
+    }
   },
 
   getTranscript(

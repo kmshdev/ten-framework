@@ -1,24 +1,27 @@
 import type { Metadata } from "next";
-import { Antonio, Archivo, JetBrains_Mono } from "next/font/google";
+import { Archivo, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "@livekit/components-styles";
 import "./globals.css";
 
-const antonio = Antonio({
+const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-antonio",
+  display: "swap",
+  variable: "--font-source-serif",
+  fallback: ["Charter", "Georgia", "serif"],
 });
 
 const archivo = Archivo({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  display: "swap",
   variable: "--font-archivo",
+  fallback: ["Arial", "sans-serif"],
 });
 
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-  weight: ["400", "500"],
+  display: "swap",
   variable: "--font-jetbrains",
+  fallback: ["SFMono-Regular", "Consolas", "monospace"],
 });
 
 export const metadata: Metadata = {
@@ -35,7 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${antonio.variable} ${archivo.variable} ${jetbrains.variable} font-body`}
+        className={`${sourceSerif.variable} ${archivo.variable} ${jetbrains.variable} font-body`}
       >
         {children}
       </body>

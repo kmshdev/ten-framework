@@ -24,29 +24,34 @@ export default function PipelineTrace({ state }: { state: AgentVisualState }) {
 
   return (
     <div
-      className="flex items-center rounded-full border border-line-soft bg-control/75 px-3 py-1.5 shadow-[0_1px_0_rgba(255,255,255,0.65)_inset]"
+      className="flex max-w-[calc(100vw-2rem)] items-center justify-center rounded-full border border-line-soft bg-control/75 px-3 py-1.5 shadow-[0_1px_0_rgba(255,231,184,0.06)_inset,0_12px_36px_rgba(0,0,0,0.22)]"
       aria-label={`Pipeline — ${state}`}
     >
       {STAGES.map((stage, i) => {
         const isActive = stage.id === active;
         return (
           <span key={stage.id} className="flex items-center">
-            {i > 0 && <span className="mx-2.5 h-px w-6 bg-line" aria-hidden />}
+            {i > 0 && (
+              <span
+                className="mx-2 h-px w-4 bg-line sm:mx-2.5 sm:w-6"
+                aria-hidden
+              />
+            )}
             <span
-              className={`flex items-center gap-1.5 font-mono text-[11px] font-bold tracking-[0.12em] transition-colors duration-200 ${
+              title={`${stage.label} · ${stage.sub}`}
+              className={`type-caps flex items-center gap-1.5 transition-colors duration-200 ${
                 isActive ? "text-ink" : "text-ink-tertiary"
               }`}
             >
               <i
                 className={`inline-block h-2 w-2 rounded-full transition-colors duration-200 ${
                   isActive
-                    ? "bg-voice shadow-[0_0_0_3px_rgba(226,37,24,0.12)]"
-                    : "bg-ink-faint opacity-65"
+                    ? "bg-voice shadow-[0_0_0_3px_rgba(255,59,46,0.16),0_0_18px_rgba(255,59,46,0.36)]"
+                    : "bg-ink-faint opacity-55"
                 }`}
                 aria-hidden
               />
-              {stage.label}{" "}
-              <span className="font-medium text-ink-tertiary">{stage.sub}</span>
+              {stage.label}
             </span>
           </span>
         );

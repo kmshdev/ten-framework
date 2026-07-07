@@ -77,12 +77,12 @@ function ArtifactShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="my-1.5 mb-2.5 overflow-hidden rounded border border-hairline bg-card">
-      <div className="flex items-center gap-2.5 border-b border-hairline-soft px-4 py-2.5">
-        <span className="text-[13.5px] font-semibold text-ink">{title}</span>
+    <div className="my-1.5 mb-2.5 overflow-hidden rounded-xl border border-hairline bg-card shadow-[0_16px_44px_rgba(0,0,0,0.24),0_1px_0_rgba(255,231,184,0.04)_inset]">
+      <div className="flex items-center gap-2.5 border-b border-hairline-soft bg-control/45 px-4 py-2.5">
+        <span className="type-ui text-ink">{title}</span>
         {badge && (
           <span
-            className={`ml-auto rounded-sm px-2 py-0.5 font-mono text-[10.5px] tracking-wide ${
+            className={`type-caps ml-auto rounded-sm px-2 py-0.5 ${
               badgeTone === "ok"
                 ? "bg-ok-bg text-ok"
                 : "bg-attention-bg text-attention"
@@ -92,7 +92,7 @@ function ArtifactShell({
           </span>
         )}
       </div>
-      <div className="px-4 py-3 text-[13px] text-ink-2">{children}</div>
+      <div className="type-small px-4 py-3 text-ink-2">{children}</div>
     </div>
   );
 }
@@ -162,30 +162,30 @@ function OrderArtifact({ args }: { args: Record<string, unknown> }) {
             badge={status || undefined}
             badgeTone={delivered ? "ok" : "attention"}
           >
-            <table className="w-full border-collapse text-[12.5px]">
+            <table className="type-small w-full border-collapse">
               <tbody>
                 {order.items.map((item, i) => (
                   <tr key={i}>
                     <td className="border-b border-hairline-soft py-1.5 text-ink last:border-0">
                       {item.title} ×{item.quantity}
                     </td>
-                    <td className="border-b border-hairline-soft py-1.5 text-right font-mono text-[11.5px] last:border-0">
+                    <td className="type-number border-b border-hairline-soft py-1.5 text-right text-[0.75rem] last:border-0">
                       {formatINR(item.price)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="mt-1 flex justify-between border-t border-hairline-soft pt-2.5 text-[12px]">
+            <div className="type-small mt-1 flex justify-between border-t border-hairline-soft pt-2.5">
               <span>Total {formatINR(order.total_price_inr)}</span>
               {shipment && (
-                <span className="font-mono text-[11px] text-ink-3">
+                <span className="type-mono text-ink-3">
                   {shipment.courier} · AWB {shipment.awb}
                 </span>
               )}
             </div>
             {shipment?.last_checkpoint && !delivered && (
-              <div className="mt-2.5 rounded-sm bg-attention-bg px-2.5 py-2 text-[12px] leading-relaxed text-attention">
+              <div className="type-small mt-2.5 rounded-sm bg-attention-bg px-2.5 py-2 text-attention">
                 Last scan — {shipment.last_checkpoint}
                 {shipment.estimated_delivery
                   ? ` · ETA ${shipment.estimated_delivery}`
@@ -261,12 +261,10 @@ function KbArtifact({ args }: { args: Record<string, unknown> }) {
           badge={`SCORE ${hit.score.toFixed(2)}`}
           badgeTone={hit.score >= 0.5 ? "ok" : "attention"}
         >
-          <p className="mb-2 border-l-2 border-hairline pl-3 text-[12.5px] leading-relaxed">
+          <p className="type-small mb-2 border-l-2 border-hairline pl-3">
             {hit.text}
           </p>
-          <span className="font-mono text-[10.5px] text-ink-3">
-            {hit.section}
-          </span>
+          <span className="type-mono text-ink-3">{hit.section}</span>
         </ArtifactShell>
       ))}
     </>
@@ -295,13 +293,11 @@ function GenericArtifact({ tool }: { tool: ParsedTool }) {
         <>
           <p className="leading-relaxed">{known.body}</p>
           {tool.argsLabel && (
-            <p className="mt-2 font-mono text-[11px] text-ink-3">
-              {tool.argsLabel}
-            </p>
+            <p className="type-mono mt-2 text-ink-3">{tool.argsLabel}</p>
           )}
         </>
       ) : (
-        <span className="font-mono text-[11.5px]">{tool.argsLabel}</span>
+        <span className="type-mono">{tool.argsLabel}</span>
       )}
     </ArtifactShell>
   );
@@ -315,7 +311,7 @@ function ToolTrace({ message }: { message: TranscriptMessage }) {
 
   if (!tool) {
     return (
-      <div className="animate-rise my-1 border-l-2 border-hairline py-1 pl-4 font-mono text-[12px] text-ink-3">
+      <div className="type-mono animate-rise my-1 border-l-2 border-hairline py-1 pl-4 text-ink-3">
         {message.content}
       </div>
     );
@@ -328,13 +324,13 @@ function ToolTrace({ message }: { message: TranscriptMessage }) {
         if ((e.target as HTMLDetailsElement).open) setOpened(true);
       }}
     >
-      <summary className="flex cursor-pointer select-none items-center gap-2.5 py-1 font-mono text-[12px] text-ink-3 transition-colors duration-150 hover:text-ink-2">
-        <span className="trace-arrow inline-block text-[9px] text-ink-mute transition-transform duration-200">
+      <summary className="type-mono flex cursor-pointer select-none items-center gap-2.5 py-1 text-ink-3 transition-colors duration-150 hover:text-ink-2">
+        <span className="trace-arrow inline-block text-[0.6rem] text-ink-mute transition-transform duration-200">
           ▶
         </span>
         <span className="font-medium text-ink">{tool.fn}</span>
         <span className="truncate">{tool.argsLabel}</span>
-        <span className="ml-auto shrink-0 text-[10.5px] text-ink-3">
+        <span className="type-mono ml-auto shrink-0 text-ink-3">
           {formatClock(message.ts)}
         </span>
       </summary>
@@ -363,23 +359,23 @@ function Turn({
   return (
     <div className="animate-rise py-3">
       <div className="mb-1 flex items-baseline gap-2.5">
-        <span className="flex items-center gap-1.5 font-brand text-[11.5px] font-semibold uppercase tracking-[0.16em] text-ink-2">
+        <span className="type-caps flex items-center gap-1.5 text-ink-2">
           {isAgent && (
             <i className="h-1.5 w-1.5 rounded-full bg-voice" aria-hidden />
           )}
           {isAgent ? "Maya" : `${callerLabel} · caller`}
         </span>
         {hasHindi && (
-          <span className="rounded-sm bg-inset px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-ink-2">
+          <span className="type-caps rounded-sm bg-inset px-1.5 py-0.5 text-ink-2">
             HI
           </span>
         )}
-        <span className="ml-auto font-mono text-[10.5px] tabular-nums text-ink-3">
+        <span className="type-number ml-auto text-[0.72rem] text-ink-3">
           {formatClock(message.ts)}
         </span>
       </div>
       <p
-        className={`max-w-[62ch] whitespace-pre-wrap break-words text-[15px] leading-[1.6] ${
+        className={`type-body max-w-[62ch] whitespace-pre-wrap break-words ${
           isAgent ? "text-ink" : "text-ink-2"
         }`}
       >
@@ -431,14 +427,14 @@ export default function CallTape({
 
   return (
     <section
-      className="flex min-h-0 flex-col border-t border-line bg-panel/72 shadow-[0_-1px_0_rgba(255,255,255,0.65)_inset]"
+      className="relative z-0 flex min-h-0 flex-col border-t border-line bg-panel/72 shadow-[0_-1px_0_rgba(255,231,184,0.05)_inset]"
       aria-label="Call transcript"
     >
-      <div className="mx-auto flex w-full max-w-[860px] items-baseline gap-3 px-6 pb-2 pt-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.22em] text-ink-tertiary">
+      <div className="type-caps mx-auto flex w-full max-w-[920px] items-baseline gap-3 px-4 pb-2 pt-3 text-ink-tertiary sm:px-6">
         <span className="text-ink-secondary">Call tape</span>
         {callId && <span className="normal-case">{callId}</span>}
         {startedAtLabel && <span>started {startedAtLabel}</span>}
-        <span className="ml-auto rounded-full bg-control px-2.5 py-1 text-[10px] text-ink-secondary ring-1 ring-line-soft">
+        <span className="type-caps ml-auto rounded-full bg-control px-2.5 py-1 text-ink-secondary ring-1 ring-line-soft">
           {error
             ? "connection issue"
             : isLive
@@ -454,17 +450,21 @@ export default function CallTape({
         onScroll={handleScroll}
         className="tape-scroll tape-mask min-h-0 flex-1 overflow-y-auto scroll-smooth"
       >
-        <div className="mx-auto w-full max-w-[860px] px-6 pb-7 pt-3">
+        <div className="mx-auto w-full max-w-[920px] px-4 pb-7 pt-3 sm:px-6">
           {error ? (
-            <p className="py-6 text-center text-[13px] text-attention">
-              {error}
-            </p>
+            <p className="type-small py-6 text-left text-attention">{error}</p>
           ) : messages.length === 0 ? (
-            <p className="py-10 text-center text-[14px] font-medium text-ink-tertiary">
-              {callId
-                ? "No messages in this call yet."
-                : "The tape streams here the moment a call connects."}
-            </p>
+            <div className="mx-auto my-4 max-w-xl rounded-2xl border border-line-soft bg-inset/60 px-5 py-5 text-left shadow-[0_1px_0_rgba(255,231,184,0.04)_inset]">
+              <div className="type-caps mb-3 flex w-max items-center gap-1.5 rounded-full border border-line-soft bg-control px-2.5 py-1 text-ink-tertiary">
+                <span className="h-1.5 w-1.5 rounded-full bg-voice shadow-[0_0_14px_rgba(255,59,46,0.45)]" />
+                transcript standby
+              </div>
+              <p className="type-small font-medium text-ink-tertiary">
+                {callId
+                  ? "No messages in this call yet."
+                  : "Choose a seeded persona, enter your phone number, and Maya’s live call transcript will stream here."}
+              </p>
+            </div>
           ) : (
             messages.map((message, index) =>
               message.role === "tool" ? (
