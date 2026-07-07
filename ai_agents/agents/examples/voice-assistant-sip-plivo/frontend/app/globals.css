@@ -2,29 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-    color: #111827;
-    background-color: #fffbf7;
+/* SuperYou Voice Agent Console — Quiet Stage tokens.
+   See ../.interface-design/system.md for the full system. */
+:root {
+    --paper: #fafaf8;
+    --card: #ffffff;
+    --inset: #f3f2ef;
+    --ink: #1a1a18;
+    --ink-2: #55534e;
+    --ink-3: #757269; /* tertiary: metadata, small mono — AA at 10.5px */
+    --ink-mute: #b8b5ae; /* decorative only: arrows, inactive dots */
+    --hairline: rgba(26, 26, 24, 0.1);
+    --hairline-soft: rgba(26, 26, 24, 0.055);
+    --voice: #ef1400; /* visualizer, logo, agent dot, end-call. Nothing else. */
+    --voice-soft: rgba(239, 20, 0, 0.08);
+    --ok: #3d7a4e;
+    --ok-bg: rgba(61, 122, 78, 0.09);
+    --attention: #9a6b15;
+    --attention-bg: rgba(154, 107, 21, 0.08);
 }
 
-@layer components {
-    .btn-primary {
-        @apply bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-xl transition-colors duration-200 shadow-sm shadow-orange-500/20;
+body {
+    background: var(--paper);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Single entrance motion for tape entries (the visualizer is the only
+   continuous animation on screen — keep it that way). */
+@keyframes rise-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@layer utilities {
+    .animate-rise {
+        animation: rise-in 400ms ease both;
     }
 
-    .btn-success {
-        @apply bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-xl transition-colors duration-200;
+    /* Flowing tape: entries dissolve under a soft top fade */
+    .tape-mask {
+        mask-image: linear-gradient(to bottom, transparent 0, black 28px);
+        -webkit-mask-image: linear-gradient(
+            to bottom,
+            transparent 0,
+            black 28px
+        );
     }
+}
 
-    .btn-danger {
-        @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-xl transition-colors duration-200;
-    }
+/* Quiet scrollbars in the tape */
+.tape-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+.tape-scroll::-webkit-scrollbar-thumb {
+    background: var(--hairline);
+    border-radius: 4px;
+}
 
-    .input-field {
-        @apply w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent text-gray-900 bg-white placeholder-gray-400 caret-orange-500;
-    }
-
-    .card {
-        @apply rounded-2xl bg-white p-6 shadow-sm border border-gray-100;
-    }
+/* Tool traces use native <details>; hide the marker, rotate our arrow */
+details.trace > summary {
+    list-style: none;
+}
+details.trace > summary::-webkit-details-marker {
+    display: none;
+}
+details.trace[open] .trace-arrow {
+    transform: rotate(90deg);
 }
