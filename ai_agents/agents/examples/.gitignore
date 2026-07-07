@@ -25,3 +25,6 @@ build
 
 __pycache__
 .release
+.design
+.interface-design
+**/.agents

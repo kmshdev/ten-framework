@@ -7,7 +7,7 @@ import type { AgentVisualState } from "@/hooks/useAgentSession";
 
 const STAGES = [
   { id: "sip", label: "SIP", sub: "plivo" },
-  { id: "asr", label: "ASR", sub: "deepgram" },
+  { id: "asr", label: "ASR", sub: "sarvam" },
   { id: "llm", label: "LLM", sub: "gpt-4o-mini" },
   { id: "tts", label: "TTS", sub: "elevenlabs" },
 ] as const;

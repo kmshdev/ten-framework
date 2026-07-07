@@ -6,10 +6,10 @@
 // only as artifacts of tool calls, inline on the tape.
 
 import { useCallback, useEffect, useState } from "react";
-import { twilioAPI } from "@/app/api";
-import AgentVisualizer from "@/components/console/AgentVisualizer";
+import { callAPI } from "@/app/api";
+import { AgentAudioVisualizerCustom } from "@/components/agents-ui/agent-audio-visualizer-custom";
 import CallTape from "@/components/console/CallTape";
-import ControlBar from "@/components/console/ControlBar";
+import ControlBar, { type CallPersona } from "@/components/console/ControlBar";
 import PipelineTrace from "@/components/console/PipelineTrace";
 import SessionsDrawer from "@/components/console/SessionsDrawer";
 import { useAgentSession } from "@/hooks/useAgentSession";
@@ -43,7 +43,7 @@ export default function Home() {
     let cancelled = false;
     const check = async () => {
       try {
-        const res = await twilioAPI.getHealth();
+        const res = await callAPI.getHealth();
         if (!cancelled)
           setHealthy(res.status === "ok" || res.status === "healthy");
       } catch {
@@ -58,27 +58,35 @@ export default function Home() {
     };
   }, []);
 
-  const handleStartCall = useCallback(async (phone: string) => {
-    try {
-      setCallBusy(true);
-      setCallError(null);
-      const res = await twilioAPI.createCall({ phone_number: phone });
-      setOwnCallSid(res.call_sid);
-    } catch (err) {
-      setCallError(
-        err instanceof Error ? err.message : "Failed to start the call",
-      );
-    } finally {
-      setCallBusy(false);
-    }
-  }, []);
+  const handleStartCall = useCallback(
+    async (phone: string, persona?: CallPersona) => {
+      try {
+        setCallBusy(true);
+        setCallError(null);
+        const res = await callAPI.createCall({
+          phone_number: phone,
+          ...(persona
+            ? { persona_phone: persona.phone, persona_name: persona.name }
+            : {}),
+        });
+        setOwnCallSid(res.call_uuid);
+      } catch (err) {
+        setCallError(
+          err instanceof Error ? err.message : "Failed to start the call",
+        );
+      } finally {
+        setCallBusy(false);
+      }
+    },
+    [],
+  );
 
   const handleEndCall = useCallback(async () => {
     if (!ownCallSid) return;
     try {
       setCallBusy(true);
       setCallError(null);
-      await twilioAPI.deleteCall(ownCallSid);
+      await callAPI.deleteCall(ownCallSid);
       setOwnCallSid(null);
     } catch (err) {
       setCallError(
@@ -165,9 +173,11 @@ export default function Home() {
           )}
         </div>
 
-        <AgentVisualizer
+        <AgentAudioVisualizerCustom
+          size="xl"
           state={session.state}
           color="#EF1400"
+          complexity={0.5}
           className="h-[min(40vh,380px)] w-[min(40vh,380px)]"
         />
 

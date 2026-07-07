@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Antonio, Archivo, JetBrains_Mono } from "next/font/google";
+import "@livekit/components-styles";
 import "./globals.css";
 
 const antonio = Antonio({

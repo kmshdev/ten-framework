@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Twilio Voice Assistant Frontend Startup Script
+# SuperYou Voice Agent Console — frontend startup script
 
-echo "🚀 Starting Twilio Voice Assistant Frontend..."
+echo "🚀 Starting SuperYou Voice Agent console..."
 
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
@@ -14,16 +14,18 @@ fi
 if [ ! -f ".env.local" ]; then
     echo "⚙️  Creating .env.local file..."
     cat > .env.local << EOF
-# Twilio Server Configuration
+# Call server configuration (same-origin by default in production;
+# override for local development)
 NEXT_PUBLIC_TWILIO_SERVER_URL=http://localhost:8080
+NEXT_PUBLIC_TENAPP_SERVER_URL=http://localhost:8080
 EOF
     echo "✅ Created .env.local file with default configuration"
-    echo "📝 You can modify NEXT_PUBLIC_TWILIO_SERVER_URL in .env.local if needed"
+    echo "📝 Adjust the server URLs in .env.local if needed"
 fi
 
 echo "🎯 Starting development server..."
-echo "📱 Frontend will be available at: http://localhost:3000"
-echo "🔗 Make sure your Twilio server is running on: http://localhost:8080"
+echo "📱 Console will be available at: http://localhost:3000"
+echo "🔗 Make sure the call server is running on: http://localhost:8080"
 echo ""
 
 npm run dev
