@@ -38,14 +38,14 @@ function formatClock(ts: string): string {
 
 const DEVANAGARI = /[\u0900-\u097F]/;
 
-interface ParsedTool {
+export interface ParsedTool {
   fn: string;
   args: Record<string, unknown>;
   argsLabel: string;
 }
 
 /** Tool transcript entries arrive as `tool_name({"arg": "value"})`. */
-function parseToolMessage(content: string): ParsedTool | null {
+export function parseToolMessage(content: string): ParsedTool | null {
   const match = content.match(/^\s*([a-zA-Z_][\w]*)\s*\(([\s\S]*)\)\s*$/);
   if (!match) return null;
   const [, fn, rawArgs] = match;
@@ -200,16 +200,13 @@ function OrderArtifact({ args }: { args: Record<string, unknown> }) {
 }
 
 function KbArtifact({ args }: { args: Record<string, unknown> }) {
+  const query = args.query ? String(args.query) : "";
   const [results, setResults] = useState<KbResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!query) return;
     let cancelled = false;
-    const query = args.query ? String(args.query) : "";
-    if (!query) {
-      setResults([]);
-      return;
-    }
     demoAPI
       .queryKb(query)
       .then((res) => {
@@ -222,8 +219,18 @@ function KbArtifact({ args }: { args: Record<string, unknown> }) {
     return () => {
       cancelled = true;
     };
-  }, [args]);
+  }, [query]);
 
+  if (!query)
+    return (
+      <ArtifactShell
+        title="Knowledge base"
+        badge="NO QUERY"
+        badgeTone="attention"
+      >
+        The tool call did not include a query.
+      </ArtifactShell>
+    );
   if (error)
     return (
       <ArtifactShell title="Knowledge base" badge="ERROR" badgeTone="attention">

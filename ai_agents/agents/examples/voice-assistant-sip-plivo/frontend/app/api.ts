@@ -1,19 +1,22 @@
 // API client for the voice assistant call server.
 // Defaults to same-origin relative paths (the app is served behind the same
-// origin as the backend). Env vars remain as optional overrides for local dev.
-const TWILIO_SERVER_URL = process.env.NEXT_PUBLIC_TWILIO_SERVER_URL || "";
+// origin as the backend). Env vars remain as optional overrides for local dev
+// (names kept for deployment compatibility).
+const CALL_SERVER_URL = process.env.NEXT_PUBLIC_TWILIO_SERVER_URL || "";
 const TENAPP_SERVER_URL = process.env.NEXT_PUBLIC_TENAPP_SERVER_URL || "";
 
 export interface CallResponse {
-  call_sid: string;
+  call_uuid: string;
   phone_number: string;
   message: string;
   status: string;
   created_at: number;
+  persona_phone?: string | null;
+  persona_name?: string | null;
 }
 
 export interface CallInfo {
-  call_sid: string;
+  call_uuid: string;
   phone_number: string;
   status: string;
   created_at: number;
@@ -26,17 +29,15 @@ export interface CallListResponse {
 }
 
 export interface ServerConfig {
-  twilio_from_number: string;
+  plivo_from_number: string;
   server_port: number;
-  tenapp_port: number;
-  tenapp_url: string;
   public_server_url: string;
   use_https: boolean;
   use_wss: boolean;
   media_stream_enabled: boolean;
-  media_ws_url: string;
+  media_ws_url: string | null;
   webhook_enabled: boolean;
-  webhook_url: string;
+  webhook_url: string | null;
 }
 
 export interface HealthResponse {
@@ -47,23 +48,39 @@ export interface HealthResponse {
 export interface CreateCallRequest {
   phone_number: string;
   message?: string;
+  /** Pose as this seeded customer (cloudflare/seed.sql): order lookups and
+   * memory recall use this identity instead of the dialed number. */
+  persona_phone?: string;
+  persona_name?: string;
 }
 
-export interface HealthResponse {
-  status: string;
-  active_calls: number;
+function extractErrorMessage(rawBody: string): string {
+  if (!rawBody) return "";
+  try {
+    const parsed = JSON.parse(rawBody) as Record<string, unknown>;
+    const detail = parsed.detail ?? parsed.message ?? parsed.error;
+    if (typeof detail === "string") return detail;
+    if (detail && typeof detail === "object") {
+      const nested = (detail as Record<string, unknown>).message;
+      if (typeof nested === "string") return nested;
+      return JSON.stringify(detail);
+    }
+  } catch {
+    return rawBody.slice(0, 300);
+  }
+  return rawBody.slice(0, 300);
 }
 
-class TwilioAPI {
-  private twilioServerUrl: string;
+class CallAPI {
+  private callServerUrl: string;
   private tenappServerUrl: string;
   private config: ServerConfig | null = null;
 
   constructor(
-    twilioServerUrl: string = TWILIO_SERVER_URL,
+    callServerUrl: string = CALL_SERVER_URL,
     tenappServerUrl: string = TENAPP_SERVER_URL,
   ) {
-    this.twilioServerUrl = twilioServerUrl;
+    this.callServerUrl = callServerUrl;
     this.tenappServerUrl = tenappServerUrl;
   }
 
@@ -72,7 +89,7 @@ class TwilioAPI {
     options: RequestInit = {},
     useTenapp: boolean = false,
   ): Promise<T> {
-    const baseUrl = useTenapp ? this.tenappServerUrl : this.twilioServerUrl;
+    const baseUrl = useTenapp ? this.tenappServerUrl : this.callServerUrl;
     const url = `${baseUrl}${endpoint}`;
 
     const response = await fetch(url, {
@@ -85,7 +102,9 @@ class TwilioAPI {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`API request failed: ${response.status} ${errorText}`);
+      throw new Error(
+        `API request failed: ${response.status} ${extractErrorMessage(errorText)}`,
+      );
     }
 
     return response.json();
@@ -126,14 +145,14 @@ class TwilioAPI {
 
   async getConfig(): Promise<ServerConfig> {
     if (!this.config) {
-      this.config = await this.request<ServerConfig>("/api/config"); // Use twilio server
+      this.config = await this.request<ServerConfig>("/api/config"); // Use call server
     }
     return this.config;
   }
 }
 
 // Export singleton instance
-export const twilioAPI = new TwilioAPI();
+export const callAPI = new CallAPI();
 
 // Export class for custom instances
-export { TwilioAPI };
+export { CallAPI };

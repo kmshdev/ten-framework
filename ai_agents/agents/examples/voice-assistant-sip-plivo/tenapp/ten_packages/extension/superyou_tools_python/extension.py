@@ -202,12 +202,34 @@ class SuperYouToolsExtension(AsyncLLMToolBaseExtension):
         if args.get("phone"):
             params["phone"] = str(args["phone"])
         if not params:
-            return {
-                "error": "Need an order number or the caller's phone number."
-            }
+            # The LLM didn't carry the caller's phone forward in this tool
+            # call. Fall back to the server's single active-call session
+            # (same localhost:9000 callback pattern as _transfer_to_human /
+            # _recall_memory below) instead of erroring immediately - the
+            # backend already knows who's calling.
+            fallback_phone = await self._current_call_phone()
+            if fallback_phone:
+                params["phone"] = fallback_phone
+            else:
+                return {
+                    "error": "Need an order number or the caller's phone number."
+                }
         url = f"{self.config.demo_api_base}/demo/order-status?{urlencode(params)}"
         async with self.session.get(url) as resp:
             return await resp.json()
+
+    async def _current_call_phone(self) -> str:
+        """Best-effort identity of the single in-flight call (see
+        server.py::_find_active_call_uuid / GET /api/call/current)."""
+        url = f"http://localhost:{self.config.plivo_server_port}/api/call/current"
+        try:
+            async with self.session.get(url) as resp:
+                data = await resp.json()
+        except Exception:
+            return ""
+        if not data.get("active"):
+            return ""
+        return str(data.get("phone") or "")
 
     async def _search_kb(self, args: dict) -> dict:
         if not self.config.demo_api_base:

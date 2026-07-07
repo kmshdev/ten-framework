@@ -135,7 +135,6 @@ function json(data: unknown, status = 200): Response {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
     },
   });
 }
@@ -215,6 +214,37 @@ async function handleOrderStatus(url: URL, env: Env): Promise<Response> {
   return json({ found: true, orders: enriched });
 }
 
+async function handleCustomers(url: URL, env: Env): Promise<Response> {
+  const q = url.searchParams.get("q")?.trim();
+  const limit = Math.min(
+    Number(url.searchParams.get("limit") ?? 200) || 200,
+    200,
+  );
+
+  const rows = q
+    ? await env.DB.prepare(
+        `SELECT id, first_name, last_name, phone, default_city, orders_count
+         FROM customers
+         WHERE (first_name || ' ' || last_name) LIKE ?
+            OR phone LIKE ?
+            OR default_city LIKE ?
+         ORDER BY orders_count DESC, first_name ASC
+         LIMIT ?`,
+      )
+        .bind(`%${q}%`, `%${q}%`, `%${q}%`, limit)
+        .all()
+    : await env.DB.prepare(
+        `SELECT id, first_name, last_name, phone, default_city, orders_count
+         FROM customers
+         ORDER BY orders_count DESC, first_name ASC
+         LIMIT ?`,
+      )
+        .bind(limit)
+        .all();
+
+  return json({ customers: rows.results });
+}
+
 async function embed(env: Env, texts: string[]): Promise<number[][]> {
   const res = (await env.AI.run(EMBEDDING_MODEL, { text: texts })) as {
     data: number[][];
@@ -279,6 +309,11 @@ async function handleTranscripts(
   env: Env,
 ): Promise<Response> {
   if (request.method === "POST") {
+    // Writes come only from the Python backend (memory.py::_post_transcript),
+    // never a browser - gate with the same shared secret used elsewhere.
+    if (request.headers.get("x-admin-token") !== env.PLIVO_AUTH_TOKEN) {
+      return json({ error: "unauthorized" }, 401);
+    }
     const body = (await request.json()) as {
       call_id?: string;
       caller?: string;
@@ -323,6 +358,8 @@ async function handleDemo(
     switch (url.pathname) {
       case "/demo/order-status":
         return await handleOrderStatus(url, env);
+      case "/demo/customers":
+        return await handleCustomers(url, env);
       case "/demo/kb/seed":
         return await handleKbSeed(request, env);
       case "/demo/kb/query":

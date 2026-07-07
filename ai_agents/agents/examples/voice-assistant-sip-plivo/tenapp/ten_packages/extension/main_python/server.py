@@ -58,6 +58,42 @@ class PlivoCallServer:
         # Setup routes
         self._setup_routes()
 
+    # Statuses that mean "this call is still using the line" for the
+    # purposes of the single-active-call guard below.
+    _NON_TERMINAL_STATUSES = ("initiated", "ringing", "in-progress", "answered")
+    # A lost hangup webhook must never permanently deadlock new calls or
+    # transfers - ignore sessions that have looked non-terminal for too long.
+    _ACTIVE_SESSION_TTL_S = 300
+
+    def _find_active_call_uuid(
+        self, require_websocket: bool = False
+    ) -> Optional[str]:
+        """Best-effort pick of the single in-flight call.
+
+        The demo runs one call at a time, so this is the shared source of
+        truth for: rejecting a second concurrent /api/call, choosing which
+        call /api/transfer escalates, and answering /api/call/current for
+        the order-status tool's context_phone fallback.
+        """
+        now = datetime.now()
+        for cid, session in self.active_call_sessions.items():
+            if session.get("status") not in self._NON_TERMINAL_STATUSES:
+                continue
+            if require_websocket and session.get("websocket") is None:
+                continue
+            created_at = session.get("created_at")
+            if created_at:
+                try:
+                    age = (
+                        now - datetime.fromisoformat(created_at)
+                    ).total_seconds()
+                    if age > self._ACTIVE_SESSION_TTL_S:
+                        continue
+                except ValueError:
+                    pass
+            return cid
+        return None
+
     def _log_info(self, message: str):
         """Log info message using ten_env if available"""
         if self.ten_env:
@@ -89,10 +125,31 @@ class PlivoCallServer:
                 body = await request.json()
                 phone_number = body.get("phone_number")
                 message = body.get("message", "Hello from Plivo!")
+                # Demo console: dial the operator's real phone number, but
+                # have the agent treat the session as if this seeded
+                # customer (from cloudflare/seed.sql) were calling in.
+                persona_phone = body.get("persona_phone")
+                persona_name = body.get("persona_name")
 
                 if not phone_number:
                     raise HTTPException(
                         status_code=400, detail="phone_number is required"
+                    )
+
+                existing_uuid = self._find_active_call_uuid()
+                if existing_uuid:
+                    existing = self.active_call_sessions.get(existing_uuid, {})
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "message": (
+                                "A call is already in progress. End it "
+                                "before starting another."
+                            ),
+                            "call_uuid": existing_uuid,
+                            "phone_number": existing.get("phone_number"),
+                            "persona_name": existing.get("persona_name"),
+                        },
                     )
 
                 self._log_info(
@@ -131,6 +188,8 @@ class PlivoCallServer:
                 self.active_call_sessions[call_uuid] = {
                     "phone_number": phone_number,
                     "message": message,
+                    "persona_phone": persona_phone,
+                    "persona_name": persona_name,
                     "call_uuid": call_uuid,
                     "status": "initiated",
                     "created_at": datetime.now().isoformat(),
@@ -145,6 +204,8 @@ class PlivoCallServer:
                         "status": "initiated",
                         "phone_number": phone_number,
                         "message": message,
+                        "persona_phone": persona_phone,
+                        "persona_name": persona_name,
                     }
                 )
 
@@ -234,15 +295,7 @@ class PlivoCallServer:
                 # The demo runs one call at a time: pick the session with a
                 # live media websocket (stale sessions are cleaned on hangup,
                 # but never trust a session that can't be talking).
-                call_uuid = next(
-                    (
-                        cid
-                        for cid, s in self.active_call_sessions.items()
-                        if s.get("websocket") is not None
-                        and s.get("status") in ("in-progress", "answered", "ringing")
-                    ),
-                    None,
-                )
+                call_uuid = self._find_active_call_uuid(require_websocket=True)
 
                 self._log_info(
                     f"Transfer requested (reason: {reason}) for call {call_uuid}"
@@ -308,6 +361,29 @@ class PlivoCallServer:
                         "error": str(e),
                     }
                 )
+
+        @self.app.get("/api/call/current")
+        async def get_current_call():
+            """Identity of the single in-flight call, if any.
+
+            Fallback source of context_phone for the order-status tool when
+            the LLM's tool call omits both `phone` and `order_number` (see
+            superyou_tools_python/extension.py::_get_order_status).
+            """
+            call_uuid = self._find_active_call_uuid()
+            if not call_uuid:
+                return JSONResponse(content={"active": False})
+            session = self.active_call_sessions.get(call_uuid, {})
+            phone = session.get("persona_phone") or session.get("phone_number") or ""
+            return JSONResponse(
+                content={
+                    "active": True,
+                    "call_uuid": call_uuid,
+                    "phone": phone,
+                    "persona_phone": session.get("persona_phone"),
+                    "persona_name": session.get("persona_name"),
+                }
+            )
 
         @self.app.post("/api/memory/search")
         async def memory_search(request: Request):
@@ -395,7 +471,12 @@ class PlivoCallServer:
                         and request_uuid != call_uuid
                     ):
                         pending = self.active_call_sessions.pop(request_uuid)
-                        for key in ("phone_number", "message"):
+                        for key in (
+                            "phone_number",
+                            "message",
+                            "persona_phone",
+                            "persona_name",
+                        ):
                             if pending.get(key):
                                 session.setdefault(key, pending[key])
                     if customer:

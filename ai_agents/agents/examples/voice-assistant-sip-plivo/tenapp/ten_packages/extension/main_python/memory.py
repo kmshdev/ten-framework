@@ -50,10 +50,12 @@ class CallMemory:
         ten_env,
         mem0_api_key: str = "",
         demo_api_base: str = "",
+        demo_api_token: str = "",
     ):
         self.ten_env = ten_env
         self.mem0_api_key = mem0_api_key
         self.demo_api_base = demo_api_base.rstrip("/")
+        self.demo_api_token = demo_api_token
         self.session: Optional[aiohttp.ClientSession] = None
         # Per-call state
         self.call_uuid: str = ""
@@ -239,8 +241,14 @@ class CallMemory:
 
     async def _post_transcript(self, role: str, content: str):
         try:
+            headers = (
+                {"x-admin-token": self.demo_api_token}
+                if self.demo_api_token
+                else None
+            )
             async with self.session.post(
                 f"{self.demo_api_base}/demo/transcripts",
+                headers=headers,
                 json={
                     "call_id": self.call_uuid,
                     "caller": self.caller,

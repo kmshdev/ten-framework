@@ -85,6 +85,7 @@ class MainControlExtension(AsyncExtension):
             ten_env,
             mem0_api_key=self.config.mem0_api_key,
             demo_api_base=self.config.demo_api_base,
+            demo_api_token=self.config.plivo_auth_token,
         )
         await self.memory.start()
 
@@ -635,7 +636,18 @@ class MainControlExtension(AsyncExtension):
                 call_uuid, {}
             )
             caller = session.get("caller") or session.get("phone_number", "")
-            self.memory.begin_call(call_uuid, caller)
+
+            # Demo console override: an outbound call can be started "posing
+            # as" a seeded customer (persona_phone/persona_name from
+            # POST /api/call). When present, memory recall and order
+            # lookups are keyed to the persona's identity instead of the
+            # real dialed number, so the agent treats the call as if that
+            # customer were calling in.
+            persona_phone = session.get("persona_phone") or ""
+            persona_name = session.get("persona_name") or ""
+            context_phone = persona_phone or caller
+
+            self.memory.begin_call(call_uuid, context_phone)
 
             # Continual learning (mem0): recall what we know about this
             # caller and prime the LLM context before the first turn.
@@ -651,13 +663,25 @@ class MainControlExtension(AsyncExtension):
                         ),
                     )
                 )
-            if caller:
+            if persona_name:
                 self.agent.llm_exec.contexts.append(
                     LLMMessageContent(
                         role="system",
                         content=(
-                            f"The caller's phone number is {caller}. Use it "
-                            "for order lookups without asking for it again."
+                            f"You are speaking with {persona_name}. Address "
+                            "them by name naturally, as you would any "
+                            "returning customer."
+                        ),
+                    )
+                )
+            if context_phone:
+                self.agent.llm_exec.contexts.append(
+                    LLMMessageContent(
+                        role="system",
+                        content=(
+                            f"The caller's phone number is {context_phone}. "
+                            "Use it for order lookups without asking for it "
+                            "again."
                         ),
                     )
                 )
