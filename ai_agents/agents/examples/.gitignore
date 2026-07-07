@@ -18,6 +18,8 @@ bin/main
 */tenapp/bin
 
 !*/frontend/src/lib
+!*/frontend/lib
+!*/frontend/lib/**
 
 node_modules
 build
