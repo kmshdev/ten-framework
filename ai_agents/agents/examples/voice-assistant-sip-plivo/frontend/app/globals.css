@@ -7,21 +7,31 @@
 /* SuperYou Voice Agent Console — Quiet Stage tokens.
    See ../.interface-design/system.md for the full system. */
 @theme {
-    --color-paper: #fafaf8;
-    --color-card: #ffffff;
-    --color-inset: #f3f2ef;
-    --color-ink: #1a1a18;
-    --color-ink-2: #55534e;
-    --color-ink-3: #757269; /* tertiary: metadata, small mono — AA at 10.5px */
-    --color-ink-mute: #b8b5ae; /* decorative only: arrows, inactive dots */
-    --color-hairline: rgba(26, 26, 24, 0.1);
-    --color-hairline-soft: rgba(26, 26, 24, 0.055);
-    --color-voice: #ef1400; /* visualizer, logo, agent dot, end-call. Nothing else. */
-    --color-voice-soft: rgba(239, 20, 0, 0.08);
-    --color-ok: #3d7a4e;
-    --color-ok-bg: rgba(61, 122, 78, 0.09);
-    --color-attention: #9a6b15;
-    --color-attention-bg: rgba(154, 107, 21, 0.08);
+    --color-paper: #f8f3e9;
+    --color-paper-warm: #f2eadc;
+    --color-panel: #fffdf8;
+    --color-elevated: #fffaf0;
+    --color-card: #fffdf8;
+    --color-control: #f2ecdf;
+    --color-control-hover: #ece2d1;
+    --color-inset: #eee6d8;
+    --color-ink: #241f18;
+    --color-ink-secondary: #5a5147;
+    --color-ink-tertiary: #7e7468;
+    --color-ink-faint: #aaa195;
+    --color-ink-2: #5a5147;
+    --color-ink-3: #7e7468; /* tertiary: metadata, small mono — AA at 10.5px */
+    --color-ink-mute: #aaa195; /* decorative only: arrows, inactive dots */
+    --color-line: rgba(36, 31, 24, 0.14);
+    --color-line-soft: rgba(36, 31, 24, 0.08);
+    --color-hairline: rgba(36, 31, 24, 0.14);
+    --color-hairline-soft: rgba(36, 31, 24, 0.08);
+    --color-voice: #e22518; /* visualizer, logo, agent dot, end-call. Nothing else. */
+    --color-voice-soft: rgba(226, 37, 24, 0.1);
+    --color-ok: #2f7a4a;
+    --color-ok-bg: rgba(47, 122, 74, 0.1);
+    --color-attention: #9a5810;
+    --color-attention-bg: rgba(154, 88, 16, 0.1);
 
     --font-brand: var(--font-antonio), sans-serif;
     --font-body: var(--font-archivo), sans-serif;
@@ -32,9 +42,20 @@
 }
 
 body {
-    background: var(--color-paper);
+    background:
+        radial-gradient(
+            circle at 50% 14%,
+            rgba(226, 37, 24, 0.07),
+            transparent 22rem
+        ),
+        linear-gradient(
+            180deg,
+            var(--color-paper) 0%,
+            var(--color-paper-warm) 100%
+        );
     color: var(--color-ink);
     -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
 }
 
 /* Single entrance motion for tape entries (the visualizer is the only
@@ -214,15 +235,15 @@ details.trace[open] .trace-arrow {
 }
 
 :root {
-    --background: #fafaf8;
-    --foreground: #1a1a18;
-    --card-foreground: #1a1a18;
-    --popover-foreground: #1a1a18;
-    --primary: #1a1a18;
-    --muted-foreground: #757269;
-    --border: rgba(26, 26, 24, 0.1);
-    --input: rgba(26, 26, 24, 0.1);
-    --ring: rgba(26, 26, 24, 0.3);
-    --destructive: #ef1400;
-    --radius: 0.25rem;
+    --background: #f8f3e9;
+    --foreground: #241f18;
+    --card-foreground: #241f18;
+    --popover-foreground: #241f18;
+    --primary: #241f18;
+    --muted-foreground: #7e7468;
+    --border: rgba(36, 31, 24, 0.14);
+    --input: rgba(36, 31, 24, 0.14);
+    --ring: rgba(226, 37, 24, 0.4);
+    --destructive: #e22518;
+    --radius: 0.75rem;
 }

@@ -27,7 +27,7 @@ interface ControlBarProps {
 }
 
 function Divider() {
-  return <span className="my-2 w-px bg-hairline-soft" aria-hidden />;
+  return <span className="my-2.5 w-px bg-line-soft" aria-hidden />;
 }
 
 function validatePhone(value: string): string | null {
@@ -52,6 +52,7 @@ function PersonaPicker({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -60,10 +61,16 @@ function PersonaPicker({
     demoAPI
       .listCustomers()
       .then((res) => {
-        if (!cancelled) setCustomers(res.customers ?? []);
+        if (!cancelled) {
+          setCustomers(res.customers ?? []);
+          setLoadError(false);
+        }
       })
       .catch(() => {
         if (!cancelled) setLoadError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
@@ -103,32 +110,44 @@ function PersonaPicker({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
         title="Pose as a seeded SuperYou customer for this call (optional) — order lookups and memory recall use their identity"
-        className={`flex max-w-[13rem] items-center gap-2 px-4 py-2.5 text-[12.5px] font-medium transition-colors duration-150 hover:bg-inset ${
-          persona ? "text-ink" : "text-ink-mute"
+        className={`group flex min-h-11 w-[15.5rem] items-center gap-2.5 px-4 py-2.5 text-[13px] font-semibold transition-colors duration-150 hover:bg-control-hover focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-voice ${
+          persona ? "text-ink" : "text-ink-tertiary"
         }`}
       >
-        <PersonaIcon />
-        <span className="truncate">
-          {persona
-            ? `${persona.first_name} ${persona.last_name}`
-            : "Posing as…"}
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-control text-ink-tertiary ring-1 ring-line-soft group-hover:text-ink">
+          <PersonaIcon />
         </span>
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block truncate">
+            {persona
+              ? `${persona.first_name} ${persona.last_name}`
+              : "Choose persona"}
+          </span>
+          {persona && (
+            <span className="block truncate font-mono text-[10.5px] font-medium text-ink-tertiary">
+              {persona.default_city ?? "Seeded customer"} ·{" "}
+              {persona.orders_count} orders
+            </span>
+          )}
+        </span>
+        <span className="font-mono text-[11px] text-ink-faint">⌄</span>
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 z-20 mb-2 w-72 overflow-hidden rounded-md border border-hairline bg-card shadow-[0_8px_24px_rgba(26,26,24,0.12)]">
-          <div className="border-b border-hairline-soft p-2">
+        <div className="absolute left-0 top-[calc(100%+10px)] z-50 w-[24rem] overflow-hidden rounded-xl border border-line bg-elevated shadow-[0_18px_60px_rgba(36,31,24,0.18)]">
+          <div className="border-b border-line-soft p-3">
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name, city, or phone…"
               aria-label="Search seeded customers"
-              className="w-full rounded bg-inset px-2.5 py-1.5 font-mono text-[12px] text-ink placeholder:text-ink-mute focus:outline-none"
+              className="h-10 w-full rounded-lg border border-line-soft bg-control px-3 font-body text-[13px] font-medium text-ink placeholder:text-ink-faint focus:border-voice focus:outline-none"
             />
           </div>
-          <ul className="max-h-64 overflow-y-auto py-1">
+          <ul className="max-h-80 overflow-y-auto p-1.5">
             <li>
               <button
                 type="button"
@@ -136,18 +155,23 @@ function PersonaPicker({
                   onChange(null);
                   setOpen(false);
                 }}
-                className="flex w-full items-center px-3 py-2 text-left text-[12.5px] text-ink-2 hover:bg-inset"
+                className="flex w-full items-center rounded-lg px-3 py-2.5 text-left text-[13px] font-medium text-ink-secondary hover:bg-control-hover"
               >
-                No persona (real caller identity)
+                No persona — use real caller identity
               </button>
             </li>
-            {loadError && (
-              <li className="px-3 py-2 text-[12px] text-attention">
-                Couldn&apos;t load customers.
+            {loading && (
+              <li className="px-3 py-3 text-[12px] text-ink-tertiary">
+                Loading seeded customers…
               </li>
             )}
-            {!loadError && matches.length === 0 && (
-              <li className="px-3 py-2 text-[12px] text-ink-mute">
+            {loadError && (
+              <li className="px-3 py-3 text-[12px] text-attention">
+                Couldn&apos;t load customers. Check /demo/customers.
+              </li>
+            )}
+            {!loading && !loadError && matches.length === 0 && (
+              <li className="px-3 py-3 text-[12px] text-ink-tertiary">
                 No matches.
               </li>
             )}
@@ -160,12 +184,17 @@ function PersonaPicker({
                     setOpen(false);
                     setQuery("");
                   }}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-inset"
+                  className="flex w-full items-center justify-between gap-4 rounded-lg px-3 py-3 text-left transition-colors hover:bg-control-hover focus-visible:outline-2 focus-visible:outline-voice"
                 >
-                  <span className="truncate text-[12.5px] font-medium text-ink">
-                    {c.first_name} {c.last_name}
+                  <span className="min-w-0">
+                    <span className="block truncate text-[13.5px] font-semibold text-ink">
+                      {c.first_name} {c.last_name}
+                    </span>
+                    <span className="block truncate font-mono text-[11px] text-ink-tertiary">
+                      {c.phone}
+                    </span>
                   </span>
-                  <span className="shrink-0 font-mono text-[10.5px] text-ink-mute">
+                  <span className="shrink-0 rounded-full bg-control px-2.5 py-1 font-mono text-[10.5px] font-medium text-ink-secondary ring-1 ring-line-soft">
                     {c.default_city ?? "—"} · {c.orders_count} order
                     {c.orders_count === 1 ? "" : "s"}
                   </span>
@@ -211,9 +240,9 @@ export default function ControlBar({
     return (
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col items-stretch gap-1.5"
+        className="flex w-full max-w-[720px] flex-col items-stretch gap-2"
       >
-        <div className="flex items-stretch overflow-hidden rounded-md border border-hairline bg-card shadow-[0_1px_2px_rgba(26,26,24,0.03)]">
+        <div className="relative flex items-stretch rounded-2xl border border-line bg-panel shadow-[0_14px_50px_rgba(38,32,24,0.08)]">
           <PersonaPicker persona={persona} onChange={setPersona} />
           <Divider />
           <input
@@ -223,13 +252,13 @@ export default function ControlBar({
             onBlur={() => setTouched(true)}
             placeholder="+91 98XXX XXXXX"
             aria-label="Phone number for outbound call"
-            className="w-48 bg-inset px-4 py-2.5 font-mono text-[12.5px] text-ink placeholder:text-ink-mute focus:outline-none"
+            className="min-h-11 w-[15rem] bg-control px-4 py-2.5 font-mono text-[13px] font-medium tabular-nums text-ink placeholder:text-ink-faint focus:outline-none"
           />
           <Divider />
           <button
             type="submit"
             disabled={busy || !!phoneError}
-            className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium text-ink-2 transition-colors duration-150 hover:bg-inset hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex min-h-11 items-center gap-2 rounded-r-2xl px-5 py-2.5 text-[13px] font-bold text-ink transition-colors duration-150 hover:bg-control-hover disabled:cursor-not-allowed disabled:opacity-35"
           >
             {busy ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border border-ink-3 border-t-transparent" />
@@ -240,14 +269,16 @@ export default function ControlBar({
           </button>
         </div>
         {touched && phoneError && (
-          <p className="px-1 text-[11.5px] text-attention">{phoneError}</p>
+          <p className="px-2 font-mono text-[11.5px] font-medium text-attention">
+            {phoneError}
+          </p>
         )}
       </form>
     );
   }
 
   return (
-    <div className="flex items-stretch overflow-hidden rounded-md border border-hairline bg-card shadow-[0_1px_2px_rgba(26,26,24,0.03)]">
+    <div className="flex items-stretch overflow-hidden rounded-2xl border border-line bg-panel shadow-[0_14px_50px_rgba(38,32,24,0.08)]">
       <button
         type="button"
         disabled

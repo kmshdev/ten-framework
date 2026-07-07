@@ -113,19 +113,21 @@ export default function Home() {
   const stateLabel = STATE_LABEL[session.state] ?? session.state;
 
   return (
-    <div className="grid h-screen grid-rows-[auto_1fr_34vh] overflow-hidden">
+    <div className="grid h-screen grid-rows-[auto_1fr_minmax(250px,32vh)] overflow-hidden text-ink">
       {/* ============ header ============ */}
-      <header className="flex items-center gap-3 border-b border-hairline-soft px-7 py-3.5">
-        <div className="grid h-6 w-6 place-items-center rounded-sm bg-voice pt-px font-brand text-[15px] font-bold text-white">
+      <header className="flex items-center gap-4 border-b border-line-soft bg-panel/80 px-7 py-4 shadow-[0_1px_0_rgba(255,255,255,0.65)_inset] backdrop-blur">
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-voice pt-px font-brand text-[17px] font-bold text-white shadow-[0_8px_24px_rgba(226,37,24,0.24)]">
           S
         </div>
-        <div className="font-brand text-[16px] font-bold uppercase tracking-wide text-ink">
-          SuperYou{" "}
-          <span className="ml-1 text-[13px] font-semibold tracking-[0.12em] text-ink-3">
-            Voice Agent
-          </span>
+        <div>
+          <div className="font-brand text-[18px] font-bold uppercase tracking-[0.08em] text-ink">
+            SuperYou
+          </div>
+          <div className="-mt-0.5 font-mono text-[10.5px] font-medium uppercase tracking-[0.22em] text-ink-tertiary">
+            Voice Agent Console
+          </div>
         </div>
-        <div className="ml-auto flex items-center gap-4 font-mono text-[11px] text-ink-3">
+        <div className="ml-auto flex items-center gap-4 font-mono text-[11px] font-medium text-ink-tertiary">
           <span className="hidden sm:inline">plivo · mumbai-1</span>
           <span className="flex items-center gap-1.5 text-ink-2">
             <i
@@ -139,7 +141,7 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="rounded border border-hairline bg-card px-3 py-1.5 font-body text-[12.5px] font-medium text-ink-2 transition-colors duration-150 hover:border-ink-3 hover:text-ink"
+            className="rounded-full border border-line bg-control px-3.5 py-2 font-body text-[13px] font-semibold text-ink-secondary transition-colors duration-150 hover:bg-control-hover hover:text-ink"
           >
             Past sessions
             {session.calls.length ? ` · ${session.calls.length}` : ""}
@@ -148,62 +150,97 @@ export default function Home() {
       </header>
 
       {/* ============ stage ============ */}
-      <main className="relative flex min-h-0 flex-col items-center justify-center gap-1">
-        <div className="flex items-baseline gap-2.5 text-[15px] text-ink-2">
-          {session.isLive || session.activeCallId ? (
-            <>
-              <b className="font-semibold text-ink">
-                {session.caller || "Unknown caller"}
-              </b>
-              {session.durationSec !== null && (
-                <span className="border-l border-hairline pl-2.5 font-mono text-[12.5px] tabular-nums">
-                  {formatDuration(session.durationSec)}
+      <main className="relative flex min-h-0 items-center justify-center px-6 py-6">
+        <div className="grid w-full max-w-[1040px] grid-cols-[1fr_auto_1fr] items-center gap-8 rounded-[28px] border border-line-soft bg-panel/70 px-8 py-8 shadow-[0_24px_90px_rgba(38,32,24,0.09)] backdrop-blur">
+          <section className="min-w-0 self-stretch rounded-2xl border border-line-soft bg-control/45 p-5">
+            <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.24em] text-ink-tertiary">
+              Current line
+            </div>
+            <div className="mt-4 flex items-baseline gap-2.5 text-[15px] text-ink-secondary">
+              {session.isLive || session.activeCallId ? (
+                <>
+                  <b className="font-semibold text-ink">
+                    {session.caller || "Unknown caller"}
+                  </b>
+                  {session.durationSec !== null && (
+                    <span className="border-l border-hairline pl-2.5 font-mono text-[12.5px] tabular-nums">
+                      {formatDuration(session.durationSec)}
+                    </span>
+                  )}
+                  {isPinned && !session.isLive && (
+                    <span className="rounded-sm bg-inset px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-ink-2">
+                      REPLAY
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="max-w-[18rem] text-[14px] leading-6 text-ink-tertiary">
+                  No active call. Maya answers the support line automatically.
                 </span>
               )}
-              {isPinned && !session.isLive && (
-                <span className="rounded-sm bg-inset px-1.5 py-0.5 font-mono text-[10px] tracking-wide text-ink-2">
-                  REPLAY
-                </span>
-              )}
-            </>
-          ) : (
-            <span className="text-ink-3">
-              No active call — Maya answers the support line automatically
-            </span>
-          )}
-        </div>
+            </div>
+            <div className="mt-5 grid gap-2 font-mono text-[11px] font-medium text-ink-tertiary">
+              <span>region · mumbai-1</span>
+              <span>carrier · plivo sip</span>
+              <span>memory · persona-aware</span>
+            </div>
+          </section>
 
-        <AgentAudioVisualizerCustom
-          size="xl"
-          state={session.state}
-          color="#EF1400"
-          complexity={0.5}
-          className="h-[min(40vh,380px)] w-[min(40vh,380px)]"
-        />
-
-        <div className="-mt-4 flex flex-col items-center gap-3">
-          <div className="font-brand text-[21px] font-bold uppercase tracking-[0.2em] text-ink">
-            {stateLabel}
-          </div>
-
-          <PipelineTrace state={session.state} />
-
-          <div className="mt-2">
-            <ControlBar
+          <section className="flex min-w-0 flex-col items-center">
+            <AgentAudioVisualizerCustom
+              size="xl"
               state={session.state}
-              isLive={session.isLive}
-              canEnd={ownCallSid !== null}
-              busy={callBusy}
-              onStartCall={handleStartCall}
-              onEndCall={handleEndCall}
+              color="#EF1400"
+              complexity={0.5}
+              className="h-[min(36vh,340px)] w-[min(36vh,340px)]"
             />
-          </div>
 
-          {(callError || session.listError) && (
-            <p className="max-w-md text-center text-[12.5px] text-attention">
-              {callError || session.listError}
-            </p>
-          )}
+            <div className="-mt-5 flex w-full flex-col items-center gap-3">
+              <div className="font-brand text-[28px] font-bold uppercase tracking-[0.28em] text-ink drop-shadow-[0_1px_0_rgba(255,255,255,0.8)]">
+                {stateLabel}
+              </div>
+
+              <PipelineTrace state={session.state} />
+
+              <div className="mt-3 w-full">
+                <ControlBar
+                  state={session.state}
+                  isLive={session.isLive}
+                  canEnd={ownCallSid !== null}
+                  busy={callBusy}
+                  onStartCall={handleStartCall}
+                  onEndCall={handleEndCall}
+                />
+              </div>
+
+              {(callError || session.listError) && (
+                <p className="max-w-xl text-center font-mono text-[12px] font-medium text-attention">
+                  {callError || session.listError}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="min-w-0 self-stretch rounded-2xl border border-line-soft bg-control/45 p-5">
+            <div className="font-mono text-[10.5px] font-bold uppercase tracking-[0.24em] text-ink-tertiary">
+              Demo flow
+            </div>
+            <ol className="mt-4 space-y-3 text-[13px] font-medium leading-5 text-ink-secondary">
+              <li>
+                <b className="text-ink">1.</b> choose a seeded customer
+              </li>
+              <li>
+                <b className="text-ink">2.</b> enter your real phone number
+              </li>
+              <li>
+                <b className="text-ink">3.</b> Maya greets you with that order
+                context
+              </li>
+            </ol>
+            <div className="mt-5 rounded-xl border border-line-soft bg-panel p-3 font-mono text-[11px] leading-5 text-ink-tertiary">
+              Ask: “Where is my order?” or “I received the wrong flavour.”
+            </div>
+          </section>
         </div>
       </main>
 

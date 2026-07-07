@@ -431,14 +431,14 @@ export default function CallTape({
 
   return (
     <section
-      className="flex min-h-0 flex-col border-t border-hairline bg-paper"
+      className="flex min-h-0 flex-col border-t border-line bg-panel/72 shadow-[0_-1px_0_rgba(255,255,255,0.65)_inset]"
       aria-label="Call transcript"
     >
-      <div className="mx-auto flex w-full max-w-[780px] items-baseline gap-3 px-6 pb-1.5 pt-2.5 font-mono text-[10.5px] uppercase tracking-wider text-ink-3">
-        <span>Call tape</span>
+      <div className="mx-auto flex w-full max-w-[860px] items-baseline gap-3 px-6 pb-2 pt-3 font-mono text-[10.5px] font-bold uppercase tracking-[0.22em] text-ink-tertiary">
+        <span className="text-ink-secondary">Call tape</span>
         {callId && <span className="normal-case">{callId}</span>}
         {startedAtLabel && <span>started {startedAtLabel}</span>}
-        <span className="ml-auto">
+        <span className="ml-auto rounded-full bg-control px-2.5 py-1 text-[10px] text-ink-secondary ring-1 ring-line-soft">
           {error
             ? "connection issue"
             : isLive
@@ -454,13 +454,13 @@ export default function CallTape({
         onScroll={handleScroll}
         className="tape-scroll tape-mask min-h-0 flex-1 overflow-y-auto scroll-smooth"
       >
-        <div className="mx-auto w-full max-w-[780px] px-6 pb-7 pt-2">
+        <div className="mx-auto w-full max-w-[860px] px-6 pb-7 pt-3">
           {error ? (
             <p className="py-6 text-center text-[13px] text-attention">
               {error}
             </p>
           ) : messages.length === 0 ? (
-            <p className="py-6 text-center text-[13px] text-ink-3">
+            <p className="py-10 text-center text-[14px] font-medium text-ink-tertiary">
               {callId
                 ? "No messages in this call yet."
                 : "The tape streams here the moment a call connects."}
