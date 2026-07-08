@@ -670,6 +670,16 @@ class PlivoCallServer:
                                         "Extension instance not available for audio forwarding"
                                     )
 
+                        elif message.get("event") in ("playedStream", "clearedAudio"):
+                            self._log_info(f"Plivo playback event: {message}")
+                            if (
+                                hasattr(self, "extension_instance")
+                                and self.extension_instance
+                            ):
+                                await self.extension_instance.on_plivo_playback_event(
+                                    message
+                                )
+
                         elif message.get("event") == "start":
                             self._log_info(f"Media stream started: {message}")
                             # Plivo format: {"event": "start", "start": {"streamId": "...", "callId": "..."}}

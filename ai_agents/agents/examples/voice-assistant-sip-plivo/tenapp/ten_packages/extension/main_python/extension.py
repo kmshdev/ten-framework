@@ -729,7 +729,14 @@ class MainControlExtension(AsyncExtension):
 
             session = self.server_instance.active_call_sessions[call_uuid]
             stats = self._plivo_audio_stats.setdefault(
-                call_uuid, {"chunks": 0, "bytes": 0, "missing_websocket_logged": False}
+                call_uuid,
+                {
+                    "chunks": 0,
+                    "bytes": 0,
+                    "missing_websocket_logged": False,
+                    "checkpoints_sent": [],
+                    "played_checkpoints": [],
+                },
             )
 
             websocket = session.get("websocket")
@@ -777,6 +784,27 @@ class MainControlExtension(AsyncExtension):
 
             stats["chunks"] = int(stats.get("chunks", 0)) + 1
             stats["bytes"] = int(stats.get("bytes", 0)) + len(audio_data)
+
+            # Proof instrumentation: ask Plivo to acknowledge that playback
+            # reaches early audio chunks. This does not alter audio content; it
+            # only emits playedStream when Plivo actually reaches the marker.
+            if stream_id and stats["chunks"] in (1, 3):
+                checkpoint_name = f"{call_uuid}:chunk-{stats['chunks']}"
+                await websocket.send_text(
+                    json.dumps(
+                        {
+                            "event": "checkpoint",
+                            "streamId": stream_id,
+                            "name": checkpoint_name,
+                        }
+                    )
+                )
+                stats.setdefault("checkpoints_sent", []).append(checkpoint_name)
+                if self.ten_env:
+                    self.ten_env.log_info(
+                        f"Sent Plivo checkpoint for {call_uuid}: {checkpoint_name}"
+                    )
+
             if self.ten_env and stats["chunks"] <= 3:
                 self.ten_env.log_info(
                     f"Sent Plivo playAudio chunk for {call_uuid}: "
@@ -787,6 +815,47 @@ class MainControlExtension(AsyncExtension):
         except Exception as e:
             if self.ten_env:
                 self.ten_env.log_error(f"Failed to send audio to Plivo: {e}")
+
+    async def on_plivo_playback_event(self, message: dict):
+        """Record Plivo playback acknowledgements for proof/debugging."""
+        try:
+            event = message.get("event", "")
+            stream_id = message.get("streamId", "")
+            name = message.get("name", "")
+            call_uuid = ""
+            if name and ":" in name:
+                call_uuid = name.split(":", 1)[0]
+            else:
+                for cid, session in self.server_instance.active_call_sessions.items():
+                    if session.get("stream_id") == stream_id:
+                        call_uuid = cid
+                        break
+
+            if call_uuid:
+                stats = self._plivo_audio_stats.setdefault(
+                    call_uuid,
+                    {
+                        "chunks": 0,
+                        "bytes": 0,
+                        "missing_websocket_logged": False,
+                        "checkpoints_sent": [],
+                        "played_checkpoints": [],
+                    },
+                )
+                if event == "playedStream" and name:
+                    stats.setdefault("played_checkpoints", []).append(name)
+                    if self.memory and self.memory.call_uuid == call_uuid:
+                        self.memory.record_turn("tool", f"plivo_playedStream({name})")
+                elif event == "clearedAudio":
+                    stats["cleared_audio"] = int(stats.get("cleared_audio", 0)) + 1
+
+            if self.ten_env:
+                self.ten_env.log_info(
+                    f"Plivo playback event received: event={event} stream_id={stream_id} name={name} call_uuid={call_uuid}"
+                )
+        except Exception as e:
+            if self.ten_env:
+                self.ten_env.log_error(f"Failed to record Plivo playback event: {e}")
 
     async def _cleanup_call_after_delay(
         self, call_uuid: str, delay_seconds: int
@@ -883,7 +952,10 @@ class MainControlExtension(AsyncExtension):
             if stats and self.ten_env:
                 self.ten_env.log_info(
                     f"Plivo audio summary for {call_uuid}: "
-                    f"chunks={stats.get('chunks', 0)} pcm16_bytes={stats.get('bytes', 0)}"
+                    f"chunks={stats.get('chunks', 0)} pcm16_bytes={stats.get('bytes', 0)} "
+                    f"checkpoints_sent={stats.get('checkpoints_sent', [])} "
+                    f"played_checkpoints={stats.get('played_checkpoints', [])} "
+                    f"cleared_audio={stats.get('cleared_audio', 0)}"
                 )
             if self.memory and self.memory.call_uuid == call_uuid:
                 await self.memory.save()
