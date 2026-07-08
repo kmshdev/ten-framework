@@ -62,6 +62,10 @@ class MainControlExtension(AsyncExtension):
         self.turn_id: int = 0
         self.session_id: str = "0"
         self.memory: Optional[CallMemory] = None
+        # Low-volume production diagnostics for the Plivo playback path.
+        # Keyed by call UUID so each call logs only the first few audio chunks
+        # plus state transitions, avoiding noisy per-frame logs.
+        self._plivo_audio_stats: Dict[str, Dict[str, Any]] = {}
 
     def _current_metadata(self) -> dict:
         return {"session_id": self.session_id, "turn_id": self.turn_id}
@@ -293,10 +297,21 @@ class MainControlExtension(AsyncExtension):
         try:
             if audio_frame.get_name() == "pcm_frame":
                 audio_data = audio_frame.get_buf()
+                if not self.server_instance:
+                    ten_env.log_error(
+                        "Received TTS audio frame before Plivo server was initialized"
+                    )
+                    return
+
+                active_sessions = list(self.server_instance.active_call_sessions.keys())
+                if not active_sessions:
+                    ten_env.log_info(
+                        f"Received TTS audio frame with no active Plivo session: bytes={len(audio_data)}"
+                    )
+                    return
+
                 # Send audio to all active Plivo calls
-                for (
-                    call_uuid
-                ) in self.server_instance.active_call_sessions.keys():
+                for call_uuid in active_sessions:
                     await self.send_audio_to_plivo(audio_data, call_uuid)
         except Exception as e:
             ten_env.log_error(f"Failed to handle audio frame: {e}")
@@ -565,13 +580,33 @@ class MainControlExtension(AsyncExtension):
     async def send_audio_to_plivo(self, audio_data: bytes, call_uuid: str):
         """Send audio data to Plivo via WebSocket"""
         try:
-            if call_uuid not in self.server_instance.active_call_sessions:
+            if not self.server_instance:
+                if self.ten_env:
+                    self.ten_env.log_error(
+                        f"Cannot send Plivo audio for {call_uuid}: server not initialized"
+                    )
                 return
 
-            websocket = self.server_instance.active_call_sessions[
-                call_uuid
-            ].get("websocket")
+            if call_uuid not in self.server_instance.active_call_sessions:
+                if self.ten_env:
+                    self.ten_env.log_error(
+                        f"Cannot send Plivo audio for {call_uuid}: no active session"
+                    )
+                return
+
+            session = self.server_instance.active_call_sessions[call_uuid]
+            stats = self._plivo_audio_stats.setdefault(
+                call_uuid, {"chunks": 0, "bytes": 0, "missing_websocket_logged": False}
+            )
+
+            websocket = session.get("websocket")
             if not websocket:
+                if self.ten_env and not stats.get("missing_websocket_logged"):
+                    self.ten_env.log_error(
+                        f"Cannot send Plivo audio for {call_uuid}: websocket missing; "
+                        f"session_keys={sorted(session.keys())}"
+                    )
+                    stats["missing_websocket_logged"] = True
                 return
 
             # Downsample audio from 16000 Hz to 8000 Hz for Plivo
@@ -589,9 +624,7 @@ class MainControlExtension(AsyncExtension):
             # Encode μ-law audio data to base64
             audio_base64 = base64.b64encode(mulaw_data).decode("utf-8")
 
-            stream_id = self.server_instance.active_call_sessions[
-                call_uuid
-            ].get("stream_id")
+            stream_id = session.get("stream_id")
 
             # Plivo uses "playAudio" event for outgoing audio.
             # Per the protocol reference, contentType must be the bare MIME
@@ -608,6 +641,15 @@ class MainControlExtension(AsyncExtension):
             }
 
             await websocket.send_text(json.dumps(message))
+
+            stats["chunks"] = int(stats.get("chunks", 0)) + 1
+            stats["bytes"] = int(stats.get("bytes", 0)) + len(audio_data)
+            if self.ten_env and stats["chunks"] <= 3:
+                self.ten_env.log_info(
+                    f"Sent Plivo playAudio chunk for {call_uuid}: "
+                    f"chunk={stats['chunks']} pcm16_bytes={len(audio_data)} "
+                    f"mulaw_bytes={len(mulaw_data)} stream_id={stream_id or '<missing>'}"
+                )
 
         except Exception as e:
             if self.ten_env:
@@ -691,8 +733,12 @@ class MainControlExtension(AsyncExtension):
             await self._send_to_tts(greeting_text, True)
             self.memory.record_turn("assistant", greeting_text)
 
+            session_keys = sorted(
+                self.server_instance.active_call_sessions.get(call_uuid, {}).keys()
+            )
             self.ten_env.log_info(
-                f"Greeting TTS sent for call {call_uuid}: {greeting_text}"
+                f"Greeting TTS sent for call {call_uuid}: {greeting_text}; "
+                f"session_keys={session_keys}"
             )
         except Exception as e:
             self.ten_env.log_error(f"Failed to send greeting TTS: {str(e)}")
@@ -700,6 +746,12 @@ class MainControlExtension(AsyncExtension):
     async def on_call_ended(self, call_uuid: str):
         """Called by the server when Plivo reports the call finished."""
         try:
+            stats = self._plivo_audio_stats.pop(call_uuid, None)
+            if stats and self.ten_env:
+                self.ten_env.log_info(
+                    f"Plivo audio summary for {call_uuid}: "
+                    f"chunks={stats.get('chunks', 0)} pcm16_bytes={stats.get('bytes', 0)}"
+                )
             if self.memory and self.memory.call_uuid == call_uuid:
                 await self.memory.save()
                 self.memory.begin_call("", "")
