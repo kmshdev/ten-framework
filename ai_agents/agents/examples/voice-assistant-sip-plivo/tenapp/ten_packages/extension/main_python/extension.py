@@ -3,6 +3,7 @@ import json
 import time
 import base64
 import os
+import re
 import audioop
 import aiohttp
 from datetime import datetime
@@ -37,6 +38,82 @@ from ten_ai_base.struct import LLMMessageContent
 import uuid
 
 
+SUPPORTED_INTENT_KEYWORDS = {
+    "order",
+    "delivery",
+    "deliver",
+    "delivered",
+    "status",
+    "track",
+    "tracking",
+    "courier",
+    "shipment",
+    "refund",
+    "return",
+    "replace",
+    "replacement",
+    "missing",
+    "wrong",
+    "damaged",
+    "product",
+    "flavour",
+    "flavor",
+    "protein",
+    "price",
+    "help",
+    "support",
+    "assistant",
+    "human",
+    "agent",
+    "person",
+    "representative",
+    "hear",
+    "listen",
+    "voice",
+    "audio",
+    "cancel",
+    "payment",
+    "item",
+    "items",
+    "ऑर्डर",
+    "डिलीवरी",
+    "स्टेटस",
+    "कूरियर",
+    "रिफंड",
+    "रिटर्न",
+    "प्रोडक्ट",
+    "मदद",
+    "सामान",
+}
+
+FILLER_ONLY_UTTERANCES = {
+    "haan",
+    "han",
+    "ha",
+    "hmm",
+    "hm",
+    "uh",
+    "umm",
+    "um",
+    "yes",
+    "yeah",
+    "yup",
+    "ok",
+    "okay",
+    "hello",
+    "hi",
+    "हाँ",
+    "हां",
+    "हा",
+    "जी",
+}
+
+UNSUPPORTED_TV_SCRIPT_RE = re.compile(r"[\u0980-\u09FF\u0A80-\u0AFF\u0B00-\u0B7F]")
+DEVANAGARI_RE = re.compile(r"[\u0900-\u097F]")
+ASCII_LETTER_RE = re.compile(r"[A-Za-z]")
+WORD_RE = re.compile(r"[\w\u0900-\u097F]+", re.UNICODE)
+
+
 class MainControlExtension(AsyncExtension):
     """
     The entry point of the agent module.
@@ -69,6 +146,53 @@ class MainControlExtension(AsyncExtension):
 
     def _current_metadata(self) -> dict:
         return {"session_id": self.session_id, "turn_id": self.turn_id}
+
+    def _is_unsupported_tv_or_noise(self, text: str) -> bool:
+        """Reject ASR that is likely background TV/noise, not caller intent.
+
+        The demo is Hindi/English/Hinglish. Deepgram multi-language can
+        transcribe background TV into other Indic scripts; feeding those to the
+        LLM triggers the prompt's filler fallback ("Haan, boliye?").
+        """
+        normalized = " ".join(text.strip().lower().split())
+        if not normalized:
+            return True
+
+        if UNSUPPORTED_TV_SCRIPT_RE.search(normalized):
+            return True
+
+        compact = re.sub(r"[^\w\u0900-\u097F]+", "", normalized)
+        if compact in FILLER_ONLY_UTTERANCES:
+            return True
+
+        words = WORD_RE.findall(normalized)
+        has_keyword = any(keyword in normalized for keyword in SUPPORTED_INTENT_KEYWORDS)
+        has_devanagari = bool(DEVANAGARI_RE.search(normalized))
+        asks_question = "?" in normalized or normalized.startswith(
+            ("what", "where", "when", "why", "how", "can", "could", "please", "do you")
+        )
+
+        # Non-Hindi/English support calls should contain either a support
+        # keyword or a clear question. Otherwise they are commonly background
+        # TV, voicemail prompts, or ASR hallucinations (for example "To record
+        # your name and reason for" / "All the junior" from the latest calls).
+        if not has_devanagari and not has_keyword and not asks_question:
+            return True
+
+        # Very short fragments without support intent are usually fillers.
+        if len(words) <= 3 and not has_keyword and not asks_question:
+            return True
+
+        return False
+
+    def _language_instruction_for(self, text: str) -> str:
+        has_devanagari = bool(DEVANAGARI_RE.search(text))
+        has_ascii = bool(ASCII_LETTER_RE.search(text))
+        if has_ascii and not has_devanagari:
+            return "Caller spoke English. Reply in clear English only; do not use Hindi or Hinglish unless the caller switches language."
+        if has_devanagari and not has_ascii:
+            return "Caller spoke Hindi. Reply in natural Hindi using Devanagari script."
+        return "Caller spoke Hinglish. Reply in the same Hinglish mix, using Devanagari for Hindi words."
 
     async def on_init(self, ten_env: AsyncTenEnv):
         self.ten_env = ten_env
@@ -224,11 +348,20 @@ class MainControlExtension(AsyncExtension):
         stream_id = int(self.session_id)
         if not event.text:
             return
-        if event.final or len(event.text) > 2:
+
+        if self._is_unsupported_tv_or_noise(event.text):
+            self.ten_env.log_info(
+                f"[MainControlExtension] Ignored ASR noise/filler: {event.text}"
+            )
+            return
+
+        if event.final or len(event.text) > 8:
             await self._interrupt()
         if event.final:
             self.turn_id += 1
-            await self.agent.queue_llm_input(event.text)
+            language_instruction = self._language_instruction_for(event.text)
+            llm_input = f"[{language_instruction}]\nCaller: {event.text}"
+            await self.agent.queue_llm_input(llm_input)
             self.memory.record_turn("user", event.text)
         await self._send_transcript("user", event.text, event.final, stream_id)
 

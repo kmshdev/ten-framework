@@ -213,6 +213,28 @@ class PlivoCallServer:
                 self._log_error(f"Failed to create call: {str(e)}")
                 raise HTTPException(status_code=500, detail=str(e))
 
+        @self.app.get("/api/call/current")
+        async def get_current_call_before_dynamic_route():
+            """Identity of the single in-flight call, if any.
+
+            Register before /api/call/{call_uuid}; otherwise FastAPI treats
+            "current" as a call UUID and returns a misleading 500-wrapped 404.
+            """
+            call_uuid = self._find_active_call_uuid()
+            if not call_uuid:
+                return JSONResponse(content={"active": False})
+            session = self.active_call_sessions.get(call_uuid, {})
+            phone = session.get("persona_phone") or session.get("phone_number") or ""
+            return JSONResponse(
+                content={
+                    "active": True,
+                    "call_uuid": call_uuid,
+                    "phone": phone,
+                    "persona_phone": session.get("persona_phone"),
+                    "persona_name": session.get("persona_name"),
+                }
+            )
+
         @self.app.delete("/api/call/{call_uuid}")
         async def end_call(call_uuid: str):
             """End a call by UUID"""
@@ -362,28 +384,6 @@ class PlivoCallServer:
                     }
                 )
 
-        @self.app.get("/api/call/current")
-        async def get_current_call():
-            """Identity of the single in-flight call, if any.
-
-            Fallback source of context_phone for the order-status tool when
-            the LLM's tool call omits both `phone` and `order_number` (see
-            superyou_tools_python/extension.py::_get_order_status).
-            """
-            call_uuid = self._find_active_call_uuid()
-            if not call_uuid:
-                return JSONResponse(content={"active": False})
-            session = self.active_call_sessions.get(call_uuid, {})
-            phone = session.get("persona_phone") or session.get("phone_number") or ""
-            return JSONResponse(
-                content={
-                    "active": True,
-                    "call_uuid": call_uuid,
-                    "phone": phone,
-                    "persona_phone": session.get("persona_phone"),
-                    "persona_name": session.get("persona_name"),
-                }
-            )
 
         @self.app.post("/api/memory/search")
         async def memory_search(request: Request):
