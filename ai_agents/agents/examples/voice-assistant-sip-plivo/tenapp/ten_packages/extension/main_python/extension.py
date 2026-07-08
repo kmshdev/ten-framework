@@ -749,33 +749,20 @@ class MainControlExtension(AsyncExtension):
                     stats["missing_websocket_logged"] = True
                 return
 
-            # Downsample audio from 16000 Hz to 8000 Hz for Plivo
-            source_rate = 16000  # TTS generated audio sample rate
-            target_rate = 8000  # Plivo required sample rate
-            downsampled_audio = self._downsample_audio(
-                audio_data, source_rate, target_rate
-            )
-
-            # Convert PCM to μ-law for Plivo
-            mulaw_data = audioop.lin2ulaw(
-                downsampled_audio, 2
-            )  # 2 bytes per sample (16-bit)
-
-            # Encode μ-law audio data to base64
-            audio_base64 = base64.b64encode(mulaw_data).decode("utf-8")
+            # ElevenLabs is configured to emit PCM16 at 16 kHz
+            # (property.json: output_format=pcm_16000). Plivo's streaming SDK
+            # documents sending 16-bit PCM directly with
+            # content_type="audio/x-l16", sample_rate=16000. Prefer the native
+            # TTS format over our previous manual decimate-to-μ-law conversion.
+            audio_base64 = base64.b64encode(audio_data).decode("utf-8")
 
             stream_id = session.get("stream_id")
 
-            # Plivo uses "playAudio" event for outgoing audio.
-            # Per the protocol reference, contentType must be the bare MIME
-            # type with sampleRate as a SEPARATE numeric field — Plivo
-            # silently drops frames whose envelope doesn't match the
-            # Stream XML (audio/x-mulaw @ 8000).
             message = {
                 "event": "playAudio",
                 "media": {
-                    "contentType": "audio/x-mulaw",
-                    "sampleRate": 8000,
+                    "contentType": "audio/x-l16",
+                    "sampleRate": 16000,
                     "payload": audio_base64,
                 },
             }
@@ -788,6 +775,16 @@ class MainControlExtension(AsyncExtension):
             # Proof instrumentation: ask Plivo to acknowledge that playback
             # reaches early audio chunks. This does not alter audio content; it
             # only emits playedStream when Plivo actually reaches the marker.
+            if stats["chunks"] <= 3 and self.memory and self.memory.call_uuid == call_uuid:
+                self.memory.record_turn(
+                    "tool",
+                    (
+                        f"plivo_playAudio_sent(chunk={stats['chunks']}, "
+                        f"contentType=audio/x-l16, sampleRate=16000, "
+                        f"pcm16_bytes={len(audio_data)})"
+                    ),
+                )
+
             if stream_id and stats["chunks"] in (1, 3):
                 checkpoint_name = f"{call_uuid}:chunk-{stats['chunks']}"
                 await websocket.send_text(
@@ -800,6 +797,10 @@ class MainControlExtension(AsyncExtension):
                     )
                 )
                 stats.setdefault("checkpoints_sent", []).append(checkpoint_name)
+                if self.memory and self.memory.call_uuid == call_uuid:
+                    self.memory.record_turn(
+                        "tool", f"plivo_checkpoint_sent({checkpoint_name})"
+                    )
                 if self.ten_env:
                     self.ten_env.log_info(
                         f"Sent Plivo checkpoint for {call_uuid}: {checkpoint_name}"
@@ -808,8 +809,9 @@ class MainControlExtension(AsyncExtension):
             if self.ten_env and stats["chunks"] <= 3:
                 self.ten_env.log_info(
                     f"Sent Plivo playAudio chunk for {call_uuid}: "
-                    f"chunk={stats['chunks']} pcm16_bytes={len(audio_data)} "
-                    f"mulaw_bytes={len(mulaw_data)} stream_id={stream_id or '<missing>'}"
+                    f"chunk={stats['chunks']} contentType=audio/x-l16 "
+                    f"sampleRate=16000 pcm16_bytes={len(audio_data)} "
+                    f"stream_id={stream_id or '<missing>'}"
                 )
 
         except Exception as e:
