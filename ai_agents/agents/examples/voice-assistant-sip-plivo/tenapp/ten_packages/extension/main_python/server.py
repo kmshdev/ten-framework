@@ -632,10 +632,11 @@ class PlivoCallServer:
                 await websocket.accept()
                 self._log_info(f"WebSocket connection established: {websocket.client}")
 
-                # Send initial message to confirm connection
-                await websocket.send_text(
-                    '{"type": "connected", "message": "WebSocket connection established"}'
-                )
+                # Do not send arbitrary server->Plivo messages here. Plivo's
+                # bidirectional stream protocol only documents playAudio,
+                # checkpoint, and clearAudio as outbound events; sending a
+                # non-protocol "connected" message can make playback behavior
+                # undefined on stricter gateways.
 
                 # Initialize call_uuid to None to prevent NameError
                 call_uuid = None
@@ -672,8 +673,8 @@ class PlivoCallServer:
                         elif message.get("event") == "start":
                             self._log_info(f"Media stream started: {message}")
                             # Plivo format: {"event": "start", "start": {"streamId": "...", "callId": "..."}}
-                            stream_id = message.get("streamId", "")
                             start = message.get("start", {})
+                            stream_id = start.get("streamId") or message.get("streamId", "")
                             call_uuid = start.get("callId", "")
 
                             # Create session if it doesn't exist (for inbound calls)
