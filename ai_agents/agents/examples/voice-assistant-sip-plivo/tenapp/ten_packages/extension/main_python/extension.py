@@ -108,8 +108,6 @@ FILLER_ONLY_UTTERANCES = {
     "जी",
 }
 
-INITIAL_HELLO_UTTERANCES = {"hello", "hi", "hey", "हेलो", "हैलो"}
-
 UNSUPPORTED_TV_SCRIPT_RE = re.compile(r"[\u0980-\u09FF\u0A80-\u0AFF\u0B00-\u0B7F]")
 DEVANAGARI_RE = re.compile(r"[\u0900-\u097F]")
 ASCII_LETTER_RE = re.compile(r"[A-Za-z]")
@@ -186,12 +184,6 @@ class MainControlExtension(AsyncExtension):
             return True
 
         return False
-
-    def _normalized_utterance_key(self, text: str) -> str:
-        return re.sub(r"[^\w\u0900-\u097F]+", "", text.strip().lower())
-
-    def _is_initial_hello(self, text: str) -> bool:
-        return self.turn_id == 0 and self._normalized_utterance_key(text) in INITIAL_HELLO_UTTERANCES
 
     def _language_instruction_for(self, text: str) -> str:
         has_devanagari = bool(DEVANAGARI_RE.search(text))
@@ -355,19 +347,6 @@ class MainControlExtension(AsyncExtension):
         self.session_id = event.metadata.get("session_id", "100")
         stream_id = int(self.session_id)
         if not event.text:
-            return
-
-        if event.final and self._is_initial_hello(event.text):
-            retry_text = (
-                "Hello, this is Maya from SuperYou support. I can hear you. "
-                "How can I help you today?"
-            )
-            self.ten_env.log_info(
-                f"[MainControlExtension] Initial hello detected; replaying prompt: {event.text}"
-            )
-            await self._send_to_tts(retry_text, True)
-            self.memory.record_turn("assistant", retry_text)
-            await self._send_transcript("assistant", retry_text, True, stream_id)
             return
 
         if self._is_unsupported_tv_or_noise(event.text):
@@ -881,12 +860,6 @@ class MainControlExtension(AsyncExtension):
                         ),
                     )
                 )
-
-            # Give Plivo/carrier media a brief moment after the start event
-            # before sending the first playAudio frames. Some answered calls
-            # were only recording the greeting in transcripts while callees
-            # heard silence, consistent with first frames being sent too early.
-            await asyncio.sleep(0.8)
 
             # Send greeting TTS using the configured greeting message
             greeting_text = self.config.greeting
