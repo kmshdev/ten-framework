@@ -495,14 +495,14 @@
    "source": "superyou.in support policy",
    "section": "Shipping",
    "title": "Shipping and delivery",
-   "text": "Q: How long does delivery take and is shipping free?\nA: SuperYou offers free shipping on all orders across India. Orders are dispatched from the Bhiwandi fulfillment center and typically deliver in 2-6 working days depending on the delivery city. Once dispatched, customers receive tracking details by email, WhatsApp and SMS, and can also track via the 'My Account' section on superyou.in."
+   "text": "Q: How long does delivery take and is shipping free?\nA: Shipping availability and charges are shown at checkout. The current official policy levies a Rs. 50 shipping fee on orders below Rs. 500. Once an order ships, SuperYou sends tracking details for real-time monitoring. Delivery timing can be affected by stock, traffic, weather, carrier-network issues, and other events outside SuperYou's control."
   },
   {
    "id": "policy-wrong-missing",
    "source": "superyou.in support policy",
    "section": "Order issues",
    "title": "Wrong, missing or damaged items",
-   "text": "Q: What if my order arrives with a wrong, missing or damaged item?\nA: If an order arrives with a wrong flavour, a missing item, or damaged packaging, SuperYou support will register a claim with the order number and photos where applicable, and arrange a replacement or refund. Opened or consumed products cannot be returned, but genuine fulfilment errors are resolved with a replacement at no extra cost."
+   "text": "Q: What if my order arrives with a wrong, missing or damaged item?\nA: Online purchases generally cannot be returned. For a defective, transit-damaged, or expired product, SuperYou offers a free replacement when the customer provides proof of purchase and photographs. The customer must email hypedesk@superyou.in within 48 hours of receipt. Requests after 48 hours, third-party claims, and returns based only on disliking the product are not accepted."
   },
   {
    "id": "policy-cod",
@@ -512,214 +512,312 @@
    "text": "Q: What payment methods are accepted?\nA: SuperYou accepts Credit Card, Debit Card, Cash On Delivery (COD), Internet Banking, PayTM, Google Pay and other UPI apps."
   },
   {
+   "id": "brand-purpose-founders",
+   "source": "superyou.in/pages/about",
+   "section": "Brand and company",
+   "title": "Who founded SuperYou and what is its purpose?",
+   "text": "SuperYou is an Indian protein-food and protein-snacks brand co-founded by Ranveer Singh and Nikunj Biyani. The founders describe the mission as making protein fun, tasty, accessible, and part of everyday food rather than treating protein only as a supplement. SuperYou says it created India's first protein wafer, with 10 grams of protein in flavours including Chocolate, Peanut Butter, Cheese, Coffee, and Strawberry Creme."
+  },
+  {
+   "id": "brand-launch-history",
+   "source": "https://www.flypup.co/post/how-superyou-built-a-100-cr-protein-snacking-empire",
+   "section": "Brand and company",
+   "title": "When was SuperYou launched and how old is it?",
+   "text": "Public company profiles report that Ranveer Singh and Nikunj Biyani launched SuperYou in November 2024. As of July 2026, the consumer brand is approximately one year and eight months old. This launch date comes from a secondary public profile; SuperYou's official About page confirms the two co-founders but does not state the launch month."
+  },
+  {
+   "id": "support-contact-hours",
+   "source": "superyou.in/pages/contact and superyou.in/policies/refund-policy",
+   "section": "Customer support",
+   "title": "How to contact SuperYou support",
+   "text": "For order-related questions, replacements, refunds, or dissatisfaction, email hypedesk@superyou.in. The official refund policy says customer care operates Monday through Saturday, 10 AM to 6 PM IST, and normally responds to email within 24 hours. Marketing and collaboration inquiries go to marketing@superyou.in."
+  },
+  {
+   "id": "policy-cancellation-refund",
+   "source": "superyou.in/policies/refund-policy",
+   "section": "Cancellations and refunds",
+   "title": "Can an order be cancelled or refunded?",
+   "text": "Once an order is successfully placed and processed, it cannot normally be cancelled or refunded. Sale-period orders are also not eligible for cancellation or refund. Refunds may be considered when the shipping location is unserviceable or delivery is unreasonably delayed. After SuperYou confirms a refund in writing, it is processed within seven working days to the original payment method; the bank may then take another five to seven working days to reflect it."
+  },
+  {
+   "id": "policy-replacement-evidence",
+   "source": "superyou.in/policies/refund-policy",
+   "section": "Replacements",
+   "title": "Replacement eligibility and evidence",
+   "text": "A defective, transit-damaged, or expired product is eligible for a free replacement if sufficient proof of purchase and photographs are provided. Email the evidence to hypedesk@superyou.in within 48 hours of receiving the order. SuperYou does not accept requests after that window, third-party claims, or a return solely because the customer dislikes the delivered product."
+  },
+  {
+   "id": "shipping-cod-details",
+   "source": "superyou.in/policies/shipping-policy",
+   "section": "Shipping and COD",
+   "title": "Shipping charges, tracking, delays, and cash on delivery",
+   "text": "The official shipping policy currently charges Rs. 50 shipping on orders below Rs. 500; applicable charges appear at checkout and listed prices include GST. Tracking details are sent after dispatch. Delivery can be delayed by stock, traffic, weather, air-network or carrier issues. For cash on delivery, customers should keep the exact amount because delivery partners may not carry change."
+  },
+  {
+   "id": "rewards-program-overview",
+   "source": "superyou.in/pages/rewards",
+   "section": "Rewards",
+   "title": "How SuperYou Coins work",
+   "text": "SuperYou's rewards page describes a loyalty program where customers join, earn SuperYou Coins through listed activities, and redeem those coins for available rewards. Available earning actions, coin values, and redemption offers can change, so customers should check the live Rewards page and their account for current terms."
+  },
+  {
+   "id": "referral-program-process",
+   "source": "superyou.in/pages/superyou-refer-and-earn",
+   "section": "Referrals",
+   "title": "How Refer and Earn works",
+   "text": "Share the unique referral link through WhatsApp, SMS, or email. A referral only qualifies when it meets the stated minimum-order requirement, is delivered successfully, and is not cancelled, returned, or marked RTO. Eligible cashback is normally processed within 48 hours after delivery and sent through WhatsApp, SMS, or email. Redemption links are single-use and may expire as stated in the message."
+  },
+  {
+   "id": "quality-testing-process",
+   "source": "superyou.in/blogs/the-protein-zone/behind-the-scenes-quality-and-safety-at-superyou",
+   "section": "Quality and safety",
+   "title": "How SuperYou tests protein wafers",
+   "text": "SuperYou describes checks across raw materials, packaging, batter, center cream, wafer weight, cooling and temperature control, metal detection, nutritional testing, chemical analysis, and microbiological testing. Its official article states that every batch is screened for bacteria and pathogens including Salmonella and E. coli under FSSAI guidelines, and only passing batches leave the factory."
+  },
+  {
+   "id": "lab-reports-access",
+   "source": "superyou.in/pages/lab-reports",
+   "section": "Quality and safety",
+   "title": "Where can customers find SuperYou lab reports?",
+   "text": "SuperYou publishes batch and product lab-report documents on the Lab Reports page at superyou.in/pages/lab-reports. Customers looking for a certificate or report for a particular product or batch should use that page and match the document name to the package or contact hypedesk@superyou.in for help."
+  },
+  {
+   "id": "protein-comparison-quality",
+   "source": "superyou.in/blogs/the-protein-zone/fermented-yeast-protein-vs-whey-protein-vs-plant-protein-the-ultimate-protein-comparison",
+   "section": "Protein comparison",
+   "title": "Fermented yeast protein compared with whey and plant protein",
+   "text": "SuperYou's comparison article says fermented yeast protein is made by fermenting Saccharomyces cerevisiae. It describes it as vegan, dairy-free, containing all nine essential amino acids, and having a PDCAAS score of 1.0, comparable with whey. The article reports a broader profile of eighteen amino acids, approximately 18.62% BCAAs and close to 8% leucine. These are brand-published nutrition claims, not personal medical advice."
+  },
+  {
+   "id": "medical-advice-boundary",
+   "source": "SuperYou support guidance",
+   "section": "Health guidance",
+   "title": "Medical, allergy, pregnancy, and health-condition questions",
+   "text": "Support may explain ingredients, nutrition labels, allergen statements, and brand-published product facts, but must not diagnose conditions or prescribe a diet or supplement. For pregnancy, medication interactions, allergies, kidney or liver conditions, digestive disorders, or other health concerns, advise the caller to consult a qualified doctor or registered dietitian before use."
+  },
+  {
+   "id": "product-10059790090530",
+   "source": "superyou.in/products/vanilla-fermented-yeast-protein-500g-x-2",
+   "section": "PRO",
+   "title": "Vanilla Fermented Yeast Protein - 500g X 2",
+   "text": "Product: Vanilla Fermented Yeast Protein - 500g X 2. Variants and current listed prices: Default Title: Rs. 2249.00 (in stock). Tags: protein-powders. Description: Meet the new Vanilla flavour of SuperYou PRO, inspired by the most iconic milkshake taste there is. Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 14 servings per pack X 2"
+  },
+  {
+   "id": "product-10049632895266",
+   "source": "superyou.in/products/vanilla-fermented-yeast-500g",
+   "section": "PRO",
+   "title": "Vanilla Fermented Yeast Protein - 500g",
+   "text": "Product: Vanilla Fermented Yeast Protein - 500g. Variants and current listed prices: Default Title: Rs. 1249.00 (in stock). Tags: pro, protein-powders. Description: Meet the new Vanilla flavour of SuperYou PRO, inspired by the most iconic milkshake taste there is. Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 14 servings per pack"
+  },
+  {
    "id": "product-10256107667746",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/strawberry-fermented-yeast-protein-500g-jar",
    "section": "PRO",
    "title": "Strawberry Fermented Yeast Protein - 500g Jar",
-   "text": "Product: Strawberry Fermented Yeast Protein - 500g Jar. Price: Rs. 1299.00. Availability: in stock. Fresh, fruity and made with real freeze dried strawberries in every scoop. Enjoy 24g of gut loving protein made using bio fermented yeast protein for easy digestion and muscle support. Now in our upgraded jar with a built in scoop holder for a cleaner experience. 14 servings per jar."
+   "text": "Product: Strawberry Fermented Yeast Protein - 500g Jar. Variants and current listed prices: Default Title: Rs. 1299.00 (in stock). Tags: . Description: Fresh, fruity and made with real freeze dried strawberries in every scoop. Enjoy 24g of gut loving protein made using bio fermented yeast protein for easy digestion and muscle support. Now in our upgraded jar with a built in scoop holder for a cleaner experience. 14 servings per jar."
   },
   {
    "id": "product-10161530700066",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/kesar-badam-fermented-yeast-protein-1kg-jar",
    "section": "PRO",
    "title": "Kesar Badam Fermented Yeast Protein - 1Kg Jar",
-   "text": "Product: Kesar Badam Fermented Yeast Protein - 1Kg Jar. Price: Rs. 2499.00. Availability: in stock. Rich kesar notes, real almond slices, and a flavour that’s been a family favourite for generations. From kulfis to overnight oats, this maaad tasty indulgence now comes with 24g of gut-loving protein and real badam crunch in every scoop. Made with the lightest bio-fermented yeast protein for easy digestion and real muscle support. 28 Servings Per Jar"
+   "text": "Product: Kesar Badam Fermented Yeast Protein - 1Kg Jar. Variants and current listed prices: Default Title: Rs. 2499.00 (in stock). Tags: pro, protein-powders. Description: Rich kesar notes, real almond slices, and a flavour that’s been a family favourite for generations. From kulfis to overnight oats, this maaad tasty indulgence now comes with 24g of gut-loving protein and real badam crunch in every scoop. Made with the lightest bio-fermented yeast protein for easy digestion and real muscle support. 28 Servings Per Jar"
   },
   {
    "id": "product-10152790655266",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/5g-orange-mini-protein-wafer-pack-of-10",
    "section": "Wafers mini",
    "title": "5g Orange Mini Protein Wafer - Pack of 10",
-   "text": "Product: 5g Orange Mini Protein Wafer - Pack of 10. Price: Rs. 249.00. Availability: in stock. Tastes like sunshine, powers like protein. Zesty orange cream meets light, crunchy wafer layers, made with atta and jowar, 5g protein, no added sugar &amp; no palm oil. Nostalgia, but better or shall we say super! Pack of 10 Protein Wafer Minis"
+   "text": "Product: 5g Orange Mini Protein Wafer - Pack of 10. Variants and current listed prices: Default Title: Rs. 249.00 (in stock). Tags: . Description: Tastes like sunshine, powers like protein. Zesty orange cream meets light, crunchy wafer layers, made with atta and jowar, 5g protein, no added sugar &amp; no palm oil. Nostalgia, but better or shall we say super! Pack of 10 Protein Wafer Minis"
   },
   {
    "id": "product-9980889628962",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/cookies-and-cream-pack-of-20",
    "section": "wafers mini",
    "title": "Cookies and Cream Mini - Pack of 20",
-   "text": "Product: Cookies and Cream Mini - Pack of 20. Price: Rs. 499.00. Availability: in stock. That childhood treat you loved with a protein upgrade. Layers of creamy vanilla and cocoa come together to give you a bite that’s comforting, heavenly and so damn dreamy"
+   "text": "Product: Cookies and Cream Mini - Pack of 20. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: That childhood treat you loved with a protein upgrade. Layers of creamy vanilla and cocoa come together to give you a bite that’s comforting, heavenly and so damn dreamy"
   },
   {
    "id": "product-9840936354082",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/assorted-trial-pack",
    "section": "PRO",
    "title": "Chocolate & Cold Coffee Assorted - Pack of 8 Sachets",
-   "text": "Product: Chocolate & Cold Coffee Assorted - Pack of 8 Sachets. Price: Rs. 749.00. Availability: in stock. When you’re making the switch, start smart — try both flavours first. Our Coffee + Chocolate trial pack helps you set your new protein routine. Smoother, lighter, and tastier than anything you’ve had before. Each serving is packed with 24g of gut loving protein that keeps you feeling light. Chocolate - 4 X 36g each Cold Coffee - 4 X 36g each"
+   "text": "Product: Chocolate & Cold Coffee Assorted - Pack of 8 Sachets. Variants and current listed prices: Default Title: Rs. 749.00 (in stock). Tags: pro, protein-powders. Description: When you’re making the switch, start smart — try both flavours first. Our Coffee + Chocolate trial pack helps you set your new protein routine. Smoother, lighter, and tastier than anything you’ve had before. Each serving is packed with 24g of gut loving protein that keeps you feeling light. Chocolate - 4 X 36g each Cold Coffee - 4 X 36g each"
   },
   {
    "id": "product-10044263039266",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/creatine-monohydrate-unflavoured",
    "section": "Creatine Monohydrate",
    "title": "Creatine Monohydrate 100g - Unflavoured",
-   "text": "Product: Creatine Monohydrate 100g - Unflavoured. Price: Rs. 399.00. Availability: in stock. Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
+   "text": "Product: Creatine Monohydrate 100g - Unflavoured. Variants and current listed prices: Default Title: Rs. 399.00 (in stock). Tags: sale-max1, ship@0. Description: Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
   },
   {
    "id": "product-10044260811042",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/creatine-monohydrate-orange",
    "section": "Creatine Monohydrate",
    "title": "Creatine Monohydrate 112g - Orange Kick",
-   "text": "Product: Creatine Monohydrate 112g - Orange Kick. Price: Rs. 399.00. Availability: in stock. Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
+   "text": "Product: Creatine Monohydrate 112g - Orange Kick. Variants and current listed prices: Default Title: Rs. 399.00 (in stock). Tags: sy-pro-creatine. Description: Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
   },
   {
    "id": "product-10044261663010",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/creatine-monohydrate-zesty-lemon",
    "section": "Creatine Monohydrate",
    "title": "Creatine Monohydrate 112g - Zesty Lemon",
-   "text": "Product: Creatine Monohydrate 112g - Zesty Lemon. Price: Rs. 399.00. Availability: in stock. Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
+   "text": "Product: Creatine Monohydrate 112g - Zesty Lemon. Variants and current listed prices: Default Title: Rs. 399.00 (in stock). Tags: sale-max1, sy-pro-creatine. Description: Creatine is one of the most researched supplements in the world for strength and performance . SuperYou Pro Creatine Monohydrate is micronised to 200 mesh for peak absorption and has +1bn CFU probiotic s for easy digestion. Zero calories, zero sugar, zero artificial preservatives . Take one scoop, daily, and you’ll be able to show up stronger and sharper."
   },
   {
    "id": "product-9844890370338",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/unflavoured-1-kg-fermented-yeast-protein",
    "section": "PRO",
    "title": "Unflavoured Fermented Yeast Protein - 1Kg Jar",
-   "text": "Product: Unflavoured Fermented Yeast Protein - 1Kg Jar. Price: Rs. 1999.00. Availability: in stock. JUST PROTEIN, Nothing Extra. No flavour, no sweetener, no distractions. Add to anything - your smoothie, oats, or even roti dough, for a clean protein boost that adapts to your day. 30 servings per jar"
+   "text": "Product: Unflavoured Fermented Yeast Protein - 1Kg Jar. Variants and current listed prices: Default Title: Rs. 2099.00 (in stock). Tags: pro. Description: JUST PROTEIN, Nothing Extra. No flavour, no sweetener, no distractions. Add to anything - your smoothie, oats, or even roti dough, for a clean protein boost that adapts to your day. 30 servings per jar"
   },
   {
    "id": "product-10121098199330",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/orange-mini-pack-of-10",
    "section": "Wafers mini",
    "title": "5g Orange Mini Protein Wafer - Pack of 10 X 2",
-   "text": "Product: 5g Orange Mini Protein Wafer - Pack of 10 X 2. Price: Rs. 499.00. Availability: in stock. Tastes like sunshine, powers like protein. Zesty orange cream meets light, crunchy wafer layers, made with atta and jowar, 5g protein, no added sugar &amp; no palm oil. Nostalgia, but better or shall we say super! Pack of 10 X 2 Protein Wafer Minis"
+   "text": "Product: 5g Orange Mini Protein Wafer - Pack of 10 X 2. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: Tastes like sunshine, powers like protein. Zesty orange cream meets light, crunchy wafer layers, made with atta and jowar, 5g protein, no added sugar &amp; no palm oil. Nostalgia, but better or shall we say super! Pack of 10 X 2 Protein Wafer Minis"
   },
   {
    "id": "product-10118903660834",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/cold-coffee-fermented-yeast-protein-pack-of-5",
    "section": "Product",
    "title": "Cold Coffee Fermented Yeast Protein - Pack of 5",
-   "text": "Product: Cold Coffee Fermented Yeast Protein - Pack of 5. Price: Rs. 449.00. Availability: in stock. Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 5 servings"
+   "text": "Product: Cold Coffee Fermented Yeast Protein - Pack of 5. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: pro, protein-powders. Description: Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 5 servings"
   },
   {
    "id": "product-9487398043938",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/cheese-protein-wafer",
    "section": "Wafers",
    "title": "Cheese Protein Wafer — Pack of 10",
-   "text": "Product: Cheese Protein Wafer — Pack of 10. Price: Rs. 449.00. Availability: in stock. Pack of 10 protein wafers — Bold, unexpected, unforgettable. This cheese wafer layers sweet and savory flavors between crunchy bites that pack 10g protein, 3g fiber, and zero added sugar. It’s a protein adventure , one bite at a time."
+   "text": "Product: Cheese Protein Wafer — Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: Cheese, Protein Wafers. Description: Pack of 10 Protein Wafers — Bold, unexpected, unforgettable. This cheese wafer layers sweet and savoury flavours between crunchy bites packed with 10g protein and 3g fibre. Made with Atta &amp; Jowar, with no maida, no added sugar, and no trans fat. It's a protein adventure, one bite at a time."
   },
   {
    "id": "product-10021932073250",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/cold-coffee-fermented-yeast-protein-pack-of-5-x-2",
    "section": "PRO",
    "title": "Cold Coffee Fermented Yeast Protein - Pack of 5 X 2",
-   "text": "Product: Cold Coffee Fermented Yeast Protein - Pack of 5 X 2. Price: Rs. 749.00. Availability: in stock. Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 10 servings"
+   "text": "Product: Cold Coffee Fermented Yeast Protein - Pack of 5 X 2. Variants and current listed prices: Default Title: Rs. 749.00 (in stock). Tags: . Description: Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 10 servings"
   },
   {
    "id": "product-10102864838946",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/20g-mega-protein-wafer-pack-of-6-x-2",
    "section": "Mega Wafer",
    "title": "20g Mega Protein Wafer - Pack of 6 X 2",
-   "text": "Product: 20g Mega Protein Wafer - Pack of 6 X 2. Price: Rs. 1185.00. Availability: in stock. Introducing SuperYou Mega - 20g protein, layered with crispy chocolate wafers, and topped with salted peanuts for extra crunch. Made with atta and jowar, no added sugar, and no palm oil. Whether it’s a long workday, an intense workout, this big boy has got your back. Pack of 6 X 2"
+   "text": "Product: 20g Mega Protein Wafer - Pack of 6 X 2. Variants and current listed prices: Default Title: Rs. 1185.00 (in stock). Tags: . Description: Introducing SuperYou Mega - 20g protein, layered with crispy chocolate wafers, and topped with salted peanuts for extra crunch. Made with atta and jowar, no added sugar, and no palm oil. Whether it’s a long workday, an intense workout, this big boy has got your back. Pack of 6 X 2"
   },
   {
    "id": "product-9869869941026",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/mango-hazelnut",
    "section": "wafers mini",
    "title": "Mango + Choco Hazelnut",
-   "text": "Product: Mango + Choco Hazelnut. Price: Rs. 499.00. Availability: in stock. Tropical meets Indulgent. Juicy Mango and rich Choco-Hazelnut, two bold flavours, in one epic box. Fruity or nutty, pick your vibe. Protein Wafer Minis, for when you're in a mood for a mini snack! Pack of 10 each"
+   "text": "Product: Mango + Choco Hazelnut. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: Tropical meets Indulgent. Juicy Mango and rich Choco-Hazelnut, two bold flavours, in one epic box. Fruity or nutty, pick your vibe. Protein Wafer Minis, for when you're in a mood for a mini snack! Pack of 10 each"
   },
   {
    "id": "product-9864493269282",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/choco-hazelnut-and-cookies-cream-pack-of-10-each",
    "section": "Wafers mini",
    "title": "Mini Choco Hazelnut + Cookies & Cream",
-   "text": "Product: Mini Choco Hazelnut + Cookies & Cream. Price: Rs. 499.00. Availability: in stock. Nutty meets Legendary. Rich choco-hazelnut pairs with cookies &amp; cream for the kind of crunch that feels smooth, creamy, and just the right amount of indulgent. The most iconic combo, now in Protein Wafer Minis. Pack of 10 each"
+   "text": "Product: Mini Choco Hazelnut + Cookies & Cream. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: Nutty meets Legendary. Rich choco-hazelnut pairs with cookies &amp; cream for the kind of crunch that feels smooth, creamy, and just the right amount of indulgent. The most iconic combo, now in Protein Wafer Minis. Pack of 10 each"
   },
   {
    "id": "product-9864442741026",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/mango-cookies-creme-minis-pack-of-10-each",
    "section": "Wafers mini",
    "title": "Mango + Cookies & Cream",
-   "text": "Product: Mango + Cookies & Cream. Price: Rs. 499.00. Availability: in stock. Tropical meets Classic. Juicy mango vibes collide with the all-time favourite cookies &amp; cream for a snacking duo that’s indulgent, fresh, and straight-up super. Combo that’s made to win! Pack of 10 each"
+   "text": "Product: Mango + Cookies & Cream. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: Tropical meets Classic. Juicy mango vibes collide with the all-time favourite cookies &amp; cream for a snacking duo that’s indulgent, fresh, and straight-up super. Combo that’s made to win! Pack of 10 each"
   },
   {
    "id": "product-9893862801698",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/cookies-cream-protein-wafers-pack-of-10",
    "section": "Wafers",
    "title": "Cookies & Cream Protein Wafers - Pack of 10",
-   "text": "Product: Cookies & Cream Protein Wafers - Pack of 10. Price: Rs. 449.00. Availability: in stock. That childhood treat you loved with a protein upgrade. Layers of creamy vanilla and cocoa come together to give you a bite that’s comforting, heavenly and so damn dreamy. Made with atta and jowar, packed with 10g protein, 3g fiber, no added sugar and no palm oil. Pack of 10 Protein Wafers"
+   "text": "Product: Cookies & Cream Protein Wafers - Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: Protein Wafers. Description: Pack of 10 Protein Wafers - That childhood treat you loved w ith a protein upgrade. Layers of creamy vanilla and cocoa come together to give you a bite that’s comforting, heavenly and so damn dreamy. Made with atta and jowar, with no maida, no added sugar, and no trans fat. It is packed with 10g protein, 3g fiber, and no palm oil."
   },
   {
    "id": "product-10021933056290",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/chocolate-cold-coffee-fermented-yeast-protein-pack-of-5-x-2",
    "section": "PRO",
    "title": "Chocolate & Cold Coffee Fermented Yeast Protein - Pack of 5 x 2",
-   "text": "Product: Chocolate & Cold Coffee Fermented Yeast Protein - Pack of 5 x 2. Price: Rs. 849.00. Availability: in stock. When you’re making the switch, start smart — try both flavours first. Our Coffee + Chocolate trial pack helps you set your new protein routine. Smoother, lighter, and tastier than anything you’ve had before. Each serving is packed with 24g of gut loving protein that keeps you feeling light. 10 servings"
+   "text": "Product: Chocolate & Cold Coffee Fermented Yeast Protein - Pack of 5 x 2. Variants and current listed prices: Default Title: Rs. 849.00 (in stock). Tags: . Description: When you’re making the switch, start smart — try both flavours first. Our Coffee + Chocolate trial pack helps you set your new protein routine. Smoother, lighter, and tastier than anything you’ve had before. Each serving is packed with 24g of gut loving protein that keeps you feeling light. 10 servings"
   },
   {
    "id": "product-9841155997986",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/superyou-pro-shaker",
    "section": "Shaker",
    "title": "SuperYou PRO - Shaker",
-   "text": "Product: SuperYou PRO - Shaker. Price: Rs. 499.00. Availability: in stock. Mix, Sip, Repeat! Lightweight, BPA-free, and tough enough for your daily grind. No leaks, no clumps, no stress, just silky smooth shakes every time. Easy to clean, easy to carry, built to move with you."
+   "text": "Product: SuperYou PRO - Shaker. Variants and current listed prices: Default Title: Rs. 499.00 (in stock). Tags: . Description: Mix, Sip, Repeat! Lightweight, BPA-free, and tough enough for your daily grind. No leaks, no clumps, no stress, just silky smooth shakes every time. Easy to clean, easy to carry, built to move with you."
   },
   {
    "id": "product-9668145316130",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/coffee-protein-wafer-pack-of-10",
    "section": "Wafers",
    "title": "Coffee Protein Wafer - Pack of 10",
-   "text": "Product: Coffee Protein Wafer - Pack of 10. Price: Rs. 449.00. Availability: in stock. Pack of 10 protein wafers — Smooth like your daily coffee. Crunchy like your favourite snack. 10g protein, no added sugar, no palm oil, and all the drama —because why just sip your coffee when you can bite into it?"
+   "text": "Product: Coffee Protein Wafer - Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: coffee, Protein Wafers. Description: Pack of 10 protein wafers — Smooth like your daily coffee. Crunchy like your favourite snack. 10g protein, made ith Atta &amp; Jowar, no added sugar, no trans fats, no maida no palm oil, and all the drama —because why just sip your coffee when you can bite into it?"
   },
   {
    "id": "product-9998885126434",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/20g-mega-protein-wafer",
    "section": "Mega Wafer",
    "title": "20g Mega Protein Wafer - Pack of 6",
-   "text": "Product: 20g Mega Protein Wafer - Pack of 6. Price: Rs. 649.00. Availability: in stock. Introducing SuperYou Mega - 20g protein, layered with crispy chocolate wafers, and topped with salted peanuts for extra crunch. Made with atta and jowar, no added sugar, and no palm oil. Whether it’s a long workday, an intense workout, this big boy has got your back. Pack of 6"
+   "text": "Product: 20g Mega Protein Wafer - Pack of 6. Variants and current listed prices: Default Title: Rs. 649.00 (in stock). Tags: Protein Mega Wafer. Description: Introducing SuperYou Mega - 20g protein, layered with crispy chocolate wafers, and topped with salted peanuts for extra crunch. Made with atta and jowar, no added sugar, and no palm oil. Whether it’s a long workday, an intense workout, this big boy has got your back. Pack of 6"
   },
   {
    "id": "product-9494053978402",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/variety-box",
    "section": "Wafers",
    "title": "Protein Wafers - Variety Pack of 10",
-   "text": "Product: Protein Wafers - Variety Pack of 10. Price: Rs. 399.00. Availability: in stock. Pack of 10 protein wafers — Why settle for one flavor when you can have them all? The SUPERYOU Variety Box is your ultimate snack squad, loaded with: 3x Chocolate: The OG of indulgence—rich, smooth, and always hits the spot. 3x Peanut Butter: Creamy meets crunchy in this nutty masterpiece. 2x Strawberry: A nostalgic burst of berry in every bite. 2x Cheese: The sweet-salty wildcard that keeps you coming back. 10 bars, 4 bold flavors, 1 box of snack-time perfection."
+   "text": "Product: Protein Wafers - Variety Pack of 10. Variants and current listed prices: Default Title: Rs. 399.00 (in stock). Tags: Assorted Box. Description: Pack of 10 protein wafers — Why settle for one flavor when you can have them all? Made with Atta &amp; Jowar, with no maida, no added sugar, and no trans fat. The SUPERYOU Variety Box is your ultimate snack squad, loaded with : 2x Strawberry Crème: A nostalgic burst of berry in every bite. 3x Chocolate: The OG of indulgence—rich, smooth, and always hits the spot. 2x Cheese: The sweet-salty wildcard that keeps you coming back. 3x Choco Peanut Butter: Creamy meets crunchy in this nutty masterpiece. 10 bars, 4 bold flavors, 1 box of snack-time perfection."
   },
   {
    "id": "product-9972362019106",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/variety-pack-of-15",
    "section": "Wafers",
    "title": "Protein Wafers - Variety Pack of 15",
-   "text": "Product: Protein Wafers - Variety Pack of 15. Price: Rs. 649.00. Availability: in stock. Pack of 15 protein wafers — Why settle for one flavor when you can have them all? The SUPERYOU Variety Box is your ultimate snack squad, loaded with: 3x Chocolate: The OG of indulgence—rich, smooth, and always hits the spot. 3x Peanut Butter: Creamy meets crunchy in this nutty masterpiece. 6x Strawberry: A nostalgic burst of berry in every bite. 3x Cheese: The sweet-salty wildcard that keeps you coming back. Pack of 5 X 3"
+   "text": "Product: Protein Wafers - Variety Pack of 15. Variants and current listed prices: Default Title: Rs. 649.00 (in stock). Tags: . Description: Pack of 15 protein wafers — Why settle for one flavor when you can have them all? Made with Atta &amp; Jowar, with no maida, no added sugar, and no trans fat. The SUPERYOU Variety Box is your ultimate snack squad, loaded with : 3x Chocolate: The classic indulgence, rich, smooth, and always hits the spot. 3x Choco Peanut Butter: Creamy meets crunchy in this nutty masterpiece. 6x Strawberry Crème: A nostalgic burst of berry in every bite. 3x Cheese: The sweet-salty wildcard that keeps you coming back. Pack of 5 X 3"
   },
   {
    "id": "product-9797445845282",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/chocolate-protein-powder",
    "section": "PRO",
    "title": "Chocolate Fermented Yeast Protein - 1Kg Jar",
-   "text": "Product: Chocolate Fermented Yeast Protein - 1Kg Jar. Price: Rs. 2249.00. Availability: in stock. Rich, dark, and ridiculously smooth . This is your classic chocolate flavor made cleaner and smarter with no added sugar , dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 28 servings per Jar"
+   "text": "Product: Chocolate Fermented Yeast Protein - 1Kg Jar. Variants and current listed prices: Default Title: Rs. 2349.00 (in stock). Tags: pro, protein-powders. Description: Rich, dark, and ridiculously smooth . This is your classic chocolate flavor made cleaner and smarter with no added sugar , dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 28 servings per Jar"
   },
   {
    "id": "product-9798393856290",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/coffee-protein-powder",
    "section": "PRO",
    "title": "Cold Coffee Fermented Yeast Protein - 1Kg Jar",
-   "text": "Product: Cold Coffee Fermented Yeast Protein - 1Kg Jar. Price: Rs. 2249.00. Availability: in stock. Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 28 servings per Jar"
+   "text": "Product: Cold Coffee Fermented Yeast Protein - 1Kg Jar. Variants and current listed prices: Default Title: Rs. 2349.00 (in stock). Tags: pro, protein-powders. Description: Love your brew? This one's for you. A cold coffee flavour that actually tastes like a frothy coffee with no added sugar, dairy or chalkiness . Each scoop is packed with 24g of gut loving protein that keeps you feeling light. Made with bio-fermented yeast protein for easy digestion and real muscle support. 28 servings per Jar"
   },
   {
    "id": "product-9655101915426",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/chocolate-choco-peanut-butter-combo-pack-of-20",
    "section": "Wafers",
    "title": "Chocolate & Choco Peanut Butter Combo - Pack of 10 each",
-   "text": "Product: Chocolate & Choco Peanut Butter Combo - Pack of 10 each. Price: Rs. 749.00. Availability: in stock. Double the Chocolate, Double the Love Chocolate lovers, this one’s for you. The classic choco-peanut butter combo meets rich, smooth chocolate for the ultimate indulgent crunch. 10 x Chocolate 10 x Choco Peanut Butter Because when it comes to chocolate, more is more."
+   "text": "Product: Chocolate & Choco Peanut Butter Combo - Pack of 10 each. Variants and current listed prices: Default Title: Rs. 749.00 (in stock). Tags: Chocolate, Peanut Butter. Description: Double the Chocolate, Double the Love Chocolate lovers, this one’s for you. The classic choco-peanut butter combo meets rich, smooth chocolate for the ultimate indulgent crunch. 10 x Chocolate 10 x Choco Peanut Butter Because when it comes to chocolate, more is more."
   },
   {
    "id": "product-9487398076706",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/chocolate-protein-wafer",
    "section": "Wafers",
    "title": "Chocolate Protein Wafer - Pack of 10",
-   "text": "Product: Chocolate Protein Wafer - Pack of 10. Price: Rs. 449.00. Availability: in stock. Pack of 10 protein wafers — Classic? Check. Bold? Double check. This chocolate wafer doesn’t just satisfy—it rewrites the rules. Crunchy layers wrapped in chocolate goodness, with 10g protein, 3g fiber, and no added sugar. Your favorite chocolate bar could never ."
+   "text": "Product: Chocolate Protein Wafer - Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: Chocolate, Protein Wafers. Description: Pack of 10 Protein Wafers — Classic? Check. Bold? Double check. This chocolate wafer doesn’t just satisfy—it rewrites the rules. Crunchy layers wrapped in chocolate goodness, with 10g protein, 3g fibre, and made with Atta &amp; Jowar. No maida, no added sugar, no trans fat. Your favourite chocolate bar could never."
   },
   {
    "id": "product-9487397912866",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/strawberry-creme-protein-wafer",
    "section": "Wafers",
    "title": "Strawberry Crème Protein Wafer — Pack of 10",
-   "text": "Product: Strawberry Crème Protein Wafer — Pack of 10. Price: Rs. 449.00. Availability: in stock. Pack of 10 protein wafers — Strawberry Crème brings back the good vibes with layers of crunchy wafer and creamy strawberry flavor, all powered with 10g protein, 3g fiber, and zero added sugar. Fresh, light, and a little trip down memory lane ."
+   "text": "Product: Strawberry Crème Protein Wafer — Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: bestseller, Protein Wafers, Strawberry. Description: Pack of 10 Protein Wafers — Strawberry Crème brings back the good vibes with layers of crunchy wafer and creamy strawberry flavour, all powered with 10g protein and 3g fibre. Made with Atta &amp; Jowar, with no maida, no added sugar, and no trans fat. Fresh, light, and a little trip down memory lane."
   },
   {
    "id": "product-9483316592930",
-   "source": "superyou.in catalogue",
+   "source": "superyou.in/products/choco-peanut-butter-protein-wafer",
    "section": "Wafers",
    "title": "Choco Peanut Butter Protein Wafer — Pack of 10",
-   "text": "Product: Choco Peanut Butter Protein Wafer — Pack of 10. Price: Rs. 449.00. Availability: in stock. Pack of 10 protein wafers — Smooth chocolate meets creamy peanut butter, making every bite pure bliss. With layers of crunch and flavor wrapped in chocolate, this one’s got 10g protein, 3g fiber, and no added sugar. Go ahead, get super."
+   "text": "Product: Choco Peanut Butter Protein Wafer — Pack of 10. Variants and current listed prices: Default Title: Rs. 449.00 (in stock). Tags: Peanut Butter, Protein Wafers. Description: Pack of 10 Protein Wafers — Smooth chocolate meets creamy peanut butter, making every bite pure bliss. With layers of crunch and flavour wrapped in chocolate, this one got 10g protein and 3g fibre. Made with Atta &amp; Jowar, with no maida, no added sugar, and no trans fat. Go ahead, get super."
   }
  ]
 }

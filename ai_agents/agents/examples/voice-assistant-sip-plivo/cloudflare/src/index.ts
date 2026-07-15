@@ -298,6 +298,7 @@ async function handleKbQuery(url: URL, env: Env): Promise<Response> {
       score: m.score,
       title: m.metadata?.title,
       section: m.metadata?.section,
+      source: m.metadata?.source,
       text: m.metadata?.text,
     })),
   });
