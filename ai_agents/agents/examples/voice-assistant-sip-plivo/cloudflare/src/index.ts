@@ -26,9 +26,10 @@ const EMBEDDING_MODEL = "@cf/baai/bge-m3";
 export class SuperYouAgent extends Container<Env> {
   // Plivo media WebSocket lives on 9000; super.fetch() proxies WS here.
   defaultPort = 9000;
-  // Launcher (8080) and frontend (3000) come up fast; the tenapp (9000)
-  // boots via the launcher and is awaited separately where needed.
-  requiredPorts = [8080, 3000];
+  // The dashboard is not usable until the launcher, frontend, and TEN call API
+  // are all ready. Requiring every port prevents the frontend from exposing an
+  // active Call button while port 9000 is still booting.
+  requiredPorts = [8080, 3000, 9000];
   sleepAfter = "2h";
   enableInternet = true;
 
@@ -69,7 +70,10 @@ export class SuperYouAgent extends Container<Env> {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    await this.startAndWaitForPorts({ ports: [8080, 3000] });
+    await this.startAndWaitForPorts({
+      ports: this.requiredPorts,
+      cancellationOptions: { portReadyTimeoutMS: 120_000 },
+    });
 
     // Plivo media WebSocket -> tenapp (9000). MUST go through fetch()
     // (containerFetch does not support WebSocket upgrades).
