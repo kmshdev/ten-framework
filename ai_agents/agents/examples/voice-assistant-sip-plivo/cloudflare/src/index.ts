@@ -32,6 +32,7 @@ export class SuperYouAgent extends Container<Env> {
   requiredPorts = [8080, 3000, 9000];
   sleepAfter = "2h";
   enableInternet = true;
+  private readinessPromise: Promise<void> | undefined;
 
   constructor(ctx: ConstructorParameters<typeof Container>[0], env: Env) {
     super(ctx, env);
@@ -63,17 +64,24 @@ export class SuperYouAgent extends Container<Env> {
   // RPC used by /admin/restart: hard-stop the container so the next
   // request boots a fresh instance (new image + secrets, clean state).
   async destroyContainer(): Promise<void> {
+    this.readinessPromise = undefined;
     await this.destroy();
+  }
+
+  override onStop(): void {
+    this.readinessPromise = undefined;
+  }
+
+  override onError(error: unknown): void {
+    this.readinessPromise = undefined;
+    console.error("SuperYou container error", error);
   }
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    await this.startAndWaitForPorts({
-      ports: this.requiredPorts,
-      cancellationOptions: { portReadyTimeoutMS: 120_000 },
-    });
+    await this.ensureReady();
 
     // Plivo media WebSocket -> tenapp (9000). MUST go through fetch()
     // (containerFetch does not support WebSocket upgrades).
@@ -110,6 +118,19 @@ export class SuperYouAgent extends Container<Env> {
 
     // Everything else -> dashboard frontend
     return this.containerFetch(request, 3000);
+  }
+
+  private async ensureReady(): Promise<void> {
+    if (!this.readinessPromise) {
+      this.readinessPromise = this.startAndWaitForPorts({
+        ports: this.requiredPorts,
+        cancellationOptions: { portReadyTimeoutMS: 120_000 },
+      }).catch((error) => {
+        this.readinessPromise = undefined;
+        throw error;
+      });
+    }
+    await this.readinessPromise;
   }
 
   // The tenapp (9000) is spawned by the launcher and loads the TEN runtime +
