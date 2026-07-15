@@ -749,27 +749,39 @@ class MainControlExtension(AsyncExtension):
                     stats["missing_websocket_logged"] = True
                 return
 
-            # ElevenLabs is configured to emit PCM16 at 16 kHz
-            # (property.json: output_format=pcm_16000). Plivo's streaming SDK
-            # documents sending 16-bit PCM directly with
-            # content_type="audio/x-l16", sample_rate=16000. Prefer the native
-            # TTS format over our previous manual decimate-to-μ-law conversion.
-            audio_base64 = base64.b64encode(audio_data).decode("utf-8")
+            # The Stream XML explicitly declares audio/x-mulaw;rate=8000.
+            # Plivo requires each playAudio payload to match that negotiated
+            # format. ElevenLabs emits PCM16 at 16 kHz, so convert it to the
+            # declared μ-law/8k stream format before sending.
+            downsampled_audio = self._downsample_audio(audio_data, 16000, 8000)
+            mulaw_data = audioop.lin2ulaw(downsampled_audio, 2)
+            audio_base64 = base64.b64encode(mulaw_data).decode("utf-8")
 
             stream_id = session.get("stream_id")
 
             message = {
                 "event": "playAudio",
                 "media": {
-                    "contentType": "audio/x-l16",
-                    "sampleRate": 16000,
+                    "contentType": "audio/x-mulaw",
+                    "sampleRate": 8000,
                     "payload": audio_base64,
                 },
             }
 
+            next_chunk = int(stats.get("chunks", 0)) + 1
+            if next_chunk <= 3 and self.memory and self.memory.call_uuid == call_uuid:
+                self.memory.record_turn(
+                    "tool",
+                    (
+                        f"plivo_playAudio_attempt(chunk={next_chunk}, "
+                        f"contentType=audio/x-mulaw, sampleRate=8000, "
+                        f"pcm16_bytes={len(audio_data)}, mulaw_bytes={len(mulaw_data)})"
+                    ),
+                )
+
             await websocket.send_text(json.dumps(message))
 
-            stats["chunks"] = int(stats.get("chunks", 0)) + 1
+            stats["chunks"] = next_chunk
             stats["bytes"] = int(stats.get("bytes", 0)) + len(audio_data)
 
             # Proof instrumentation: ask Plivo to acknowledge that playback
@@ -778,11 +790,7 @@ class MainControlExtension(AsyncExtension):
             if stats["chunks"] <= 3 and self.memory and self.memory.call_uuid == call_uuid:
                 self.memory.record_turn(
                     "tool",
-                    (
-                        f"plivo_playAudio_sent(chunk={stats['chunks']}, "
-                        f"contentType=audio/x-l16, sampleRate=16000, "
-                        f"pcm16_bytes={len(audio_data)})"
-                    ),
+                    f"plivo_playAudio_sent(chunk={stats['chunks']})",
                 )
 
             if stream_id and stats["chunks"] in (1, 3):
@@ -809,9 +817,9 @@ class MainControlExtension(AsyncExtension):
             if self.ten_env and stats["chunks"] <= 3:
                 self.ten_env.log_info(
                     f"Sent Plivo playAudio chunk for {call_uuid}: "
-                    f"chunk={stats['chunks']} contentType=audio/x-l16 "
-                    f"sampleRate=16000 pcm16_bytes={len(audio_data)} "
-                    f"stream_id={stream_id or '<missing>'}"
+                    f"chunk={stats['chunks']} contentType=audio/x-mulaw "
+                    f"sampleRate=8000 pcm16_bytes={len(audio_data)} "
+                    f"mulaw_bytes={len(mulaw_data)} stream_id={stream_id or '<missing>'}"
                 )
 
         except Exception as e:
