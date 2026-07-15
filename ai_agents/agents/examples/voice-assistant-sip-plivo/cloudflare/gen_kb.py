@@ -51,6 +51,13 @@ def parse_faq(md_path: str):
         if question and answer:
             body = "\n".join(answer).strip()
             body = re.sub(r"\n{3,}", "\n\n", body)
+            # The FAQ page still contains a stale blanket free-shipping answer.
+            # Prefer the newer dedicated shipping policy for operational facts.
+            if question == "Does SuperYou offer free shipping?":
+                body = (
+                    "The current official shipping policy charges Rs. 50 on orders "
+                    "below Rs. 500. Any applicable shipping charge is shown at checkout."
+                )
             if len(body) > 40:
                 chunks.append(
                     {
