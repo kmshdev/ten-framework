@@ -130,6 +130,8 @@ class PlivoCallServer:
                 # customer (from cloudflare/seed.sql) were calling in.
                 persona_phone = body.get("persona_phone")
                 persona_name = body.get("persona_name")
+                opening_message = body.get("opening_message")
+                campaign_context = body.get("campaign_context")
 
                 if not phone_number:
                     raise HTTPException(
@@ -190,6 +192,8 @@ class PlivoCallServer:
                     "message": message,
                     "persona_phone": persona_phone,
                     "persona_name": persona_name,
+                    "opening_message": opening_message,
+                    "campaign_context": campaign_context,
                     "call_uuid": call_uuid,
                     "status": "initiated",
                     "created_at": datetime.now().isoformat(),
@@ -206,6 +210,8 @@ class PlivoCallServer:
                         "message": message,
                         "persona_phone": persona_phone,
                         "persona_name": persona_name,
+                        "opening_message": opening_message,
+                        "campaign_context": campaign_context,
                     }
                 )
 
@@ -476,6 +482,8 @@ class PlivoCallServer:
                             "message",
                             "persona_phone",
                             "persona_name",
+                            "opening_message",
+                            "campaign_context",
                         ):
                             if pending.get(key):
                                 session.setdefault(key, pending[key])

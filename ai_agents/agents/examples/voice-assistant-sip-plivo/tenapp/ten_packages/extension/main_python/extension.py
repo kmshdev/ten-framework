@@ -928,6 +928,8 @@ class MainControlExtension(AsyncExtension):
             # customer were calling in.
             persona_phone = session.get("persona_phone") or ""
             persona_name = session.get("persona_name") or ""
+            opening_message = session.get("opening_message") or ""
+            campaign_context = session.get("campaign_context") or ""
             context_phone = persona_phone or caller
 
             self.memory.begin_call(call_uuid, context_phone)
@@ -957,6 +959,19 @@ class MainControlExtension(AsyncExtension):
                         ),
                     )
                 )
+            if campaign_context:
+                self.agent.llm_exec.contexts.append(
+                    LLMMessageContent(
+                        role="system",
+                        content=(
+                            "Outbound campaign facts:\n"
+                            f"{campaign_context}\n"
+                            "Use these facts only for this call. If the recipient says they "
+                            "are not the intended customer, do not disclose order or coupon "
+                            "details; apologize and end the call politely."
+                        ),
+                    )
+                )
             if context_phone:
                 self.agent.llm_exec.contexts.append(
                     LLMMessageContent(
@@ -969,8 +984,9 @@ class MainControlExtension(AsyncExtension):
                     )
                 )
 
-            # Send greeting TTS using the configured greeting message
-            greeting_text = self.config.greeting
+            # Outbound scenario calls can provide a verified opening; ordinary
+            # inbound and demo calls retain the configured support greeting.
+            greeting_text = opening_message or self.config.greeting
             await self._send_to_tts(greeting_text, True)
             self.memory.record_turn("assistant", greeting_text)
 
