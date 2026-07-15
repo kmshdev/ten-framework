@@ -16,7 +16,9 @@
                   "api_key": "${env:DEEPGRAM_API_KEY}",
                   "model": "nova-3",
                   "language": "multi",
-                  "sample_rate": 8000
+                  "sample_rate": 8000,
+                  "endpointing": 300,
+                  "interim_results": true
                 }
               }
             },

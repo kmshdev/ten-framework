@@ -75,6 +75,13 @@ SUPPORTED_INTENT_KEYWORDS = {
     "payment",
     "item",
     "items",
+    "stop",
+    "wait",
+    "pause",
+    "hold",
+    "रुको",
+    "रुकिए",
+    "ठहरो",
     "ऑर्डर",
     "डिलीवरी",
     "स्टेटस",
@@ -138,6 +145,7 @@ class MainControlExtension(AsyncExtension):
         self.sentence_fragment: str = ""
         self.turn_id: int = 0
         self.session_id: str = "0"
+        self._interrupted_utterance: bool = False
         self.memory: Optional[CallMemory] = None
         # Low-volume production diagnostics for the Plivo playback path.
         # Keyed by call UUID so each call logs only the first few audio chunks
@@ -355,14 +363,25 @@ class MainControlExtension(AsyncExtension):
             )
             return
 
-        if event.final or len(event.text) > 8:
+        # Interrupt on the first meaningful partial instead of waiting for an
+        # arbitrary transcript length. This makes short commands such as
+        # "stop" and "रुकिए" effective and avoids repeatedly flushing for
+        # every revision of the same utterance.
+        if not self._interrupted_utterance:
             await self._interrupt()
+            self._interrupted_utterance = True
         if event.final:
             self.turn_id += 1
             language_instruction = self._language_instruction_for(event.text)
-            llm_input = f"[{language_instruction}]\nCaller: {event.text}"
+            llm_input = (
+                f"[{language_instruction} Questions about SuperYou itself, including "
+                "its history, founders, company, and brand, are valid support questions. "
+                "Use search_superyou_kb before answering them; do not classify them as "
+                f"off-topic.]\nCaller: {event.text}"
+            )
             await self.agent.queue_llm_input(llm_input)
             self.memory.record_turn("user", event.text)
+            self._interrupted_utterance = False
         await self._send_transcript("user", event.text, event.final, stream_id)
 
     @agent_event_handler(LLMResponseEvent)
@@ -983,5 +1002,6 @@ class MainControlExtension(AsyncExtension):
             # Reset conversational state for the next call
             self.agent.llm_exec.contexts.clear()
             self.turn_id = 0
+            self._interrupted_utterance = False
         except Exception as e:
             self.ten_env.log_error(f"on_call_ended failed: {e}")

@@ -34,9 +34,10 @@ ORDER_TOOL_DESCRIPTION = (
 
 KB_TOOL_NAME = "search_superyou_kb"
 KB_TOOL_DESCRIPTION = (
-    "Search SuperYou's official knowledge base: product details, prices, "
-    "flavours, nutrition, allergens, protein content, shipping/return/payment "
-    "policies. Always use this before answering any product or policy question."
+    "Search SuperYou's official knowledge base for brand and company history, "
+    "founders, product details, prices, flavours, nutrition, allergens, protein "
+    "content, and shipping/return/payment policies. Always use this before "
+    "answering any question about SuperYou, its products, or its policies."
 )
 
 TRANSFER_TOOL_NAME = "transfer_to_human"
