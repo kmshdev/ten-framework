@@ -32,7 +32,7 @@ export class SuperYouAgent extends Container<Env> {
   requiredPorts = [8080, 3000, 9000];
   sleepAfter = "2h";
   enableInternet = true;
-  private readinessPromise: Promise<void> | undefined;
+  private ready = false;
 
   constructor(ctx: ConstructorParameters<typeof Container>[0], env: Env) {
     super(ctx, env);
@@ -64,16 +64,16 @@ export class SuperYouAgent extends Container<Env> {
   // RPC used by /admin/restart: hard-stop the container so the next
   // request boots a fresh instance (new image + secrets, clean state).
   async destroyContainer(): Promise<void> {
-    this.readinessPromise = undefined;
+    this.ready = false;
     await this.destroy();
   }
 
   override onStop(): void {
-    this.readinessPromise = undefined;
+    this.ready = false;
   }
 
   override onError(error: unknown): void {
-    this.readinessPromise = undefined;
+    this.ready = false;
     console.error("SuperYou container error", error);
   }
 
@@ -121,16 +121,20 @@ export class SuperYouAgent extends Container<Env> {
   }
 
   private async ensureReady(): Promise<void> {
-    if (!this.readinessPromise) {
-      this.readinessPromise = this.startAndWaitForPorts({
+    if (this.ready) return;
+
+    // A Promise created by one Durable Object request must not be reused from
+    // another request context. Serialize cold-start initialization through the
+    // DO concurrency gate instead, then expose the instance only after every
+    // required port is listening.
+    await this.ctx.blockConcurrencyWhile(async () => {
+      if (this.ready) return;
+      await this.startAndWaitForPorts({
         ports: this.requiredPorts,
         cancellationOptions: { portReadyTimeoutMS: 120_000 },
-      }).catch((error) => {
-        this.readinessPromise = undefined;
-        throw error;
       });
-    }
-    await this.readinessPromise;
+      this.ready = true;
+    });
   }
 
   // The tenapp (9000) is spawned by the launcher and loads the TEN runtime +
