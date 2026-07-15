@@ -504,7 +504,17 @@ class MainControlExtension(AsyncExtension):
         """
         Sends a sentence to the TTS system.
         """
-        request_id = f"tts-request-{self.turn_id}"
+        # ElevenLabsTTS2Extension retains completed request IDs for the life of
+        # the process and drops duplicates. turn_id resets to zero after each
+        # call, so `tts-request-0` made every greeting after the first call
+        # silently skip TTS. Scope the ID to the unique Plivo call UUID while
+        # keeping it stable across sentence chunks in the same turn.
+        call_scope = (
+            self.memory.call_uuid
+            if self.memory and self.memory.call_uuid
+            else self.session_id or "unscoped"
+        )
+        request_id = f"tts-request-{call_scope}-{self.turn_id}"
         await _send_data(
             self.ten_env,
             "tts_text_input",
