@@ -5,11 +5,11 @@ import uuid
 from collections.abc import Iterator, MutableMapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import StrEnum
+from enum import Enum
 from typing import Any
 
 
-class CallStatus(StrEnum):
+class CallStatus(str, Enum):
     REQUESTED = "requested"
     INITIATED = "initiated"
     RINGING = "ringing"
