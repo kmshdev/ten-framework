@@ -1,6 +1,10 @@
 # SuperYou Voice Agent — API Integration Reference
 
-Base URL: `https://superyou-voice-agent.gateway-worker-ai.workers.dev`
+Production base URL: `https://superyou-voice-agent.gateway-worker-ai.workers.dev`
+
+Staging base URL: `https://superyou-voice-agent-staging.gateway-worker-ai.workers.dev`
+
+> Architecture status: the coordinator and call-scoped graph routing are implemented, but concurrent-call readiness is not yet proven. The minimal dynamic graph lifecycle passes in staging; the full `va_in_hybrid_stack` graph still exceeds its startup budget. Do not treat API availability as proof of isolated concurrent media.
 
 This document is the exact, verified surface for integrating a frontend against the SuperYou voice-agent stack. Everything below was read directly from source — no invented endpoints. Source files are cited per section so you can jump straight to the implementation.
 
@@ -22,7 +26,7 @@ Source: `agents/examples/voice-assistant-sip-plivo/cloudflare/src/index.ts:68-12
 
 **Practical effect for a frontend:** you always call the one public hostname above. The Worker's routing table decides whether Cloudflare answers directly (fast, `/demo/*`) or proxies into the container (`/api/*`, `/webhook/*`, `/media`). There is no separate origin to configure and no CORS setup needed for `/demo/*` (`Access-Control-Allow-Origin: *` is set explicitly) — but note **`/api/*` and `/webhook/*` currently have no auth and no CORS headers**, see §5.
 
-Cold start: the container sleeps after 2h idle (`sleepAfter: "2h"`, `wrangler.jsonc:16`). First request after sleep can take 60–120s while the tenapp process boots — the Worker's `waitForTenapp()` blocks on port 9000 becoming ready before proxying (`index.ts:113-118`).
+Cold start: the Worker first waits for the container ports, then requires the tenapp's semantic `/readyz` check. Until readiness succeeds, requests receive a controlled `503 service_starting` response with `Retry-After`; an open port alone is not considered ready. Staging uses a deployment-versioned Durable Object identity so a new image does not reuse an old active container.
 
 ---
 
@@ -90,7 +94,7 @@ GET /api/call/a6febc37-5dff-4f41-8c3d-99840b8f461a
 ```json
 { "success": true, "active_calls": 1, "calls": ["a6febc37-5dff-4f41-8c3d-99840b8f461a"] }
 ```
-Source: `server.py:222-231`.
+The public list remains a UUID list; internally `CallRegistry` maintains immutable operation, request, call, stream, graph, and phone identities. Source: `server.py` and `call_state.py`.
 
 ### `GET /api/config` — server-side config snapshot
 
@@ -109,12 +113,17 @@ Source: `server.py:222-231`.
 ```
 Useful for a frontend to discover the live media WS URL rather than hardcoding it. Source: `server.py:517-548`.
 
-### `GET /health` — liveness probe
+### Health and readiness probes
 
-```json
-{ "status": "healthy", "active_calls": 1, "server_time": "2026-07-05T03:17:02.000000" }
-```
-Source: `server.py:506-515`.
+- `GET /livez` checks process/event-loop liveness.
+- `GET /readyz` checks semantic coordinator readiness.
+- `GET /health` is a compatibility endpoint that reflects semantic readiness rather than raw port availability.
+
+The Cloudflare Worker gates container traffic on `/readyz`. Source: `server.py` and `cloudflare/src/index.ts`.
+
+### `POST /api/admin/graph-smoke` — protected graph lifecycle diagnostic
+
+Requires `x-admin-token: <PLIVO_AUTH_TOKEN>`. `graph` accepts only the server allowlist (`minimal`, `worker`, `asr`, `llm`, `tts`, or `full`); arbitrary predefined graph names are rejected. The legacy `?full=true` form remains supported. This endpoint starts and stops a graph and is a control-plane diagnostic, not a live-call or playback test.
 
 ### `POST /api/transfer` — escalate active call to a human (used internally by the `transfer_to_human` LLM tool, but callable directly)
 
