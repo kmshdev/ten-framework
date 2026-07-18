@@ -552,10 +552,21 @@ class PlivoCallServer:
             extension = getattr(self, "extension_instance", None)
             if not extension:
                 raise HTTPException(status_code=503, detail="coordinator unavailable")
-            graph_id = await extension.graph_smoke_test()
-            return JSONResponse(
-                content={"ok": True, "graph_id": graph_id, "stopped": True}
-            )
+            try:
+                graph_id = await extension.graph_smoke_test()
+                return JSONResponse(
+                    content={"ok": True, "graph_id": graph_id, "stopped": True}
+                )
+            except Exception as exc:
+                self._log_error(f"Graph smoke failed: {type(exc).__name__}: {exc}")
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "ok": False,
+                        "error_type": type(exc).__name__,
+                        "error": str(exc),
+                    },
+                )
 
         @self.app.get("/livez")
         async def liveness_check():
