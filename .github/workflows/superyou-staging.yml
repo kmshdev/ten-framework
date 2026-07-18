@@ -186,7 +186,7 @@ jobs:
           curl --fail --silent --show-error "$STAGING_URL/health" | jq -e '.status == "healthy"'
           curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" | jq -e '.status == "ready"'
           curl --fail --silent --show-error "$STAGING_URL/api/calls" | jq -e '.success == true'
-          curl --fail --silent --show-error \
+          curl --fail --silent --show-error --max-time 100 \
             -X POST "$STAGING_URL/api/admin/graph-smoke" \
             -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
             | jq -e '.ok == true and .stopped == true and (.graph_id | length > 0)'

@@ -292,11 +292,15 @@ class MainControlExtension(AsyncExtension):
             self.ten_env.log_error(f"Failed to start server: {str(e)}")
             raise
 
-    async def _start_call_graph(self, call_uuid: str | None = None) -> str:
+    async def _start_call_graph(
+        self, call_uuid: str | None = None, graph_name: str | None = None
+    ) -> str:
         cmd = StartGraphCmd.create()
-        cmd.set_predefined_graph_name(self.config.call_graph_name)
+        cmd.set_predefined_graph_name(graph_name or self.config.call_graph_name)
         cmd.set_dests([Loc("", "", "")])
-        result, error = await self.ten_env.send_cmd(cmd)
+        result, error = await asyncio.wait_for(
+            self.ten_env.send_cmd(cmd), timeout=60.0
+        )
         if error or not result:
             raise RuntimeError(f"failed to start call graph: {error}")
         graph_id, property_error = result.get_property_string("graph_id")
@@ -312,12 +316,16 @@ class MainControlExtension(AsyncExtension):
         cmd = StopGraphCmd.create()
         cmd.set_graph_id(graph_id)
         cmd.set_dests([Loc("", "", "")])
-        _, error = await self.ten_env.send_cmd(cmd)
+        _, error = await asyncio.wait_for(
+            self.ten_env.send_cmd(cmd), timeout=30.0
+        )
         if error:
             raise RuntimeError(f"failed to stop graph {graph_id}: {error}")
 
     async def graph_smoke_test(self) -> str:
-        graph_id = await self._start_call_graph()
+        graph_id = await self._start_call_graph(
+            graph_name="graph_lifecycle_smoke"
+        )
         await self._stop_call_graph(graph_id)
         return graph_id
 

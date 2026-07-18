@@ -343,6 +343,22 @@
         }
       },
       {
+        "name": "graph_lifecycle_smoke",
+        "auto_start": false,
+        "singleton": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "streamid_adapter",
+              "addon": "streamid_adapter",
+              "property": {}
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
         "name": "plivo_coordinator",
         "auto_start": true,
         "singleton": true,
