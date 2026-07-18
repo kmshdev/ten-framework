@@ -15,6 +15,8 @@ from ten_runtime import (
     AsyncExtension,
     AsyncTenEnv,
     Cmd,
+    StartGraphCmd,
+    StopGraphCmd,
     Data,
     AudioFrame,
     Loc,
@@ -291,8 +293,9 @@ class MainControlExtension(AsyncExtension):
             raise
 
     async def _start_call_graph(self, call_uuid: str | None = None) -> str:
-        cmd = Cmd.create("start_graph")
-        cmd.set_property_string("predefined_graph_name", self.config.call_graph_name)
+        cmd = StartGraphCmd.create()
+        cmd.set_predefined_graph_name(self.config.call_graph_name)
+        cmd.set_dests([Loc("", "", "")])
         result, error = await self.ten_env.send_cmd(cmd)
         if error or not result:
             raise RuntimeError(f"failed to start call graph: {error}")
@@ -306,8 +309,9 @@ class MainControlExtension(AsyncExtension):
         return graph_id
 
     async def _stop_call_graph(self, graph_id: str) -> None:
-        cmd = Cmd.create("stop_graph")
-        cmd.set_property_string("graph_id", graph_id)
+        cmd = StopGraphCmd.create()
+        cmd.set_graph_id(graph_id)
+        cmd.set_dests([Loc("", "", "")])
         _, error = await self.ten_env.send_cmd(cmd)
         if error:
             raise RuntimeError(f"failed to stop graph {graph_id}: {error}")
