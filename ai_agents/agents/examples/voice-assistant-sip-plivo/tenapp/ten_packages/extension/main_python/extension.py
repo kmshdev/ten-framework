@@ -144,7 +144,8 @@ class MainControlExtension(AsyncExtension):
         self.stopped: bool = False
         self.sentence_fragment: str = ""
         self.turn_id: int = 0
-        self.session_id: str = "0"
+        self.session_id: str = ""
+        self.call_uuid: str = ""
         self._interrupted_utterance: bool = False
         self._received_user_turn: bool = False
         self.memory: Optional[CallMemory] = None
@@ -154,7 +155,11 @@ class MainControlExtension(AsyncExtension):
         self._plivo_audio_stats: Dict[str, Dict[str, Any]] = {}
 
     def _current_metadata(self) -> dict:
-        return {"session_id": self.session_id, "turn_id": self.turn_id}
+        return {
+            "session_id": self.session_id,
+            "call_uuid": self.call_uuid,
+            "turn_id": self.turn_id,
+        }
 
     def _is_unsupported_tv_or_noise(self, text: str) -> bool:
         """Reject ASR that is likely background TV/noise, not caller intent.
@@ -353,8 +358,9 @@ class MainControlExtension(AsyncExtension):
         self.ten_env.log_info(
             f"[MainControlExtension] ASR Result: {event.text}"
         )
-        self.session_id = event.metadata.get("session_id", "100")
-        stream_id = int(self.session_id)
+        self.session_id = event.metadata.get("session_id", "")
+        self.call_uuid = event.metadata.get("call_uuid", self.call_uuid)
+        stream_id = self.session_id
         if not event.text:
             return
 
@@ -389,7 +395,7 @@ class MainControlExtension(AsyncExtension):
                 f"off-topic.]\nCaller: {event.text}"
             )
             await self.agent.queue_llm_input(llm_input)
-            self.memory.record_turn("user", event.text)
+            self.memory.record_turn("user", event.text, self.turn_id)
             self._received_user_turn = True
             self._interrupted_utterance = False
         await self._send_transcript("user", event.text, event.final, stream_id)
@@ -407,13 +413,13 @@ class MainControlExtension(AsyncExtension):
             remaining_text = self.sentence_fragment or ""
             self.sentence_fragment = ""
             await self._send_to_tts(remaining_text, True)
-            self.memory.record_turn("assistant", event.text)
+            self.memory.record_turn("assistant", event.text, self.turn_id)
 
         await self._send_transcript(
             "assistant",
             event.text,
             event.is_final,
-            100,
+            self.session_id,
             data_type=("reasoning" if event.type == "reasoning" else "text"),
         )
 
@@ -484,7 +490,7 @@ class MainControlExtension(AsyncExtension):
         role: str,
         text: str,
         final: bool,
-        stream_id: int,
+        stream_id: str,
         data_type: Literal["text", "reasoning"] = "text",
     ):
         """
@@ -603,7 +609,9 @@ class MainControlExtension(AsyncExtension):
                 f"Audio dump directory created: {self.audio_dump_dir}"
             )
 
-    async def _forward_audio_to_ten(self, audio_payload: str, stream_id: str):
+    async def _forward_audio_to_ten(
+        self, audio_payload: str, stream_id: str, call_uuid: str
+    ):
         """Forward audio data to TEN framework and dump PCM audio"""
         try:
             if not self.ten_env:
@@ -631,7 +639,8 @@ class MainControlExtension(AsyncExtension):
             audio_frame.set_bytes_per_sample(2)
             audio_frame.set_data_fmt(AudioFrameDataFmt.INTERLEAVE)
             audio_frame.set_samples_per_channel(len(pcm_data) // (2 * 1))
-            audio_frame.set_property_int("stream_id", 54321)
+            audio_frame.set_property_string("plivo_stream_id", stream_id)
+            audio_frame.set_property_string("call_uuid", call_uuid)
             audio_frame.set_dests(
                 [
                     Loc(
@@ -998,7 +1007,7 @@ class MainControlExtension(AsyncExtension):
             # inbound and demo calls retain the configured support greeting.
             greeting_text = opening_message or self.config.greeting
             await self._send_to_tts(greeting_text, True)
-            self.memory.record_turn("assistant", greeting_text)
+            self.memory.record_turn("assistant", greeting_text, self.turn_id)
 
             session_keys = sorted(
                 self.server_instance.active_call_sessions.get(call_uuid, {}).keys()

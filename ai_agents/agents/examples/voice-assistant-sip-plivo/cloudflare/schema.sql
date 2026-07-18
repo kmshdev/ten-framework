@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS transcripts (
   caller TEXT,
   role TEXT NOT NULL,                  -- user | assistant | tool
   content TEXT NOT NULL,
+  sequence INTEGER,
+  source_timestamp_ms INTEGER,
+  turn_id INTEGER,
+  idempotency_key TEXT,
   ts TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_transcripts_call ON transcripts(call_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transcripts_idempotency
+  ON transcripts(idempotency_key) WHERE idempotency_key IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_transcripts_call_sequence
+  ON transcripts(call_id, sequence);

@@ -25,6 +25,8 @@ from typing import Optional
 
 import aiohttp
 
+from .persistence import CallIdentitySnapshot, TranscriptEvent, TranscriptSequencer
+
 MEM0_BASE = "https://api.mem0.ai"
 AGENT_ID = "superyou-voice-agent"
 
@@ -63,6 +65,7 @@ class CallMemory:
         self.messages: list[dict] = []  # full call transcript (for flush)
         self._unsaved: list[dict] = []  # turns not yet written per-round
         self._write_tasks: set[asyncio.Task] = set()
+        self._transcripts = TranscriptSequencer()
 
     async def start(self):
         self.session = aiohttp.ClientSession(
@@ -81,6 +84,7 @@ class CallMemory:
         self.caller = caller or "unknown"
         self.messages = []
         self._unsaved = []
+        self._transcripts.bind(self.call_uuid, self.caller)
 
     def _has_identity(self) -> bool:
         return bool(
@@ -171,13 +175,19 @@ class CallMemory:
             if r.get("memory")
         ]
 
-    def _spawn_write(self, turns: list[dict]):
-        """Fire-and-forget mem0 write (never blocks the voice path)."""
-        task = asyncio.create_task(self._add_memories(turns))
+    def _track_task(self, coroutine):
+        task = asyncio.create_task(coroutine)
         self._write_tasks.add(task)
         task.add_done_callback(self._write_tasks.discard)
 
-    async def _add_memories(self, turns: list[dict]):
+    def _spawn_write(self, turns: list[dict]):
+        """Fire-and-forget mem0 write with immutable call identity."""
+        identity = CallIdentitySnapshot(self.call_uuid, self.caller)
+        self._track_task(self._add_memories(turns, identity))
+
+    async def _add_memories(
+        self, turns: list[dict], identity: CallIdentitySnapshot
+    ):
         try:
             async with self.session.post(
                 f"{MEM0_BASE}/v3/memories/add/",
@@ -185,12 +195,12 @@ class CallMemory:
                 json={
                     "messages": turns,
                     # Entity scoping: per-customer store, traceable per call
-                    "user_id": self.caller,
+                    "user_id": identity.caller,
                     "agent_id": AGENT_ID,
-                    "run_id": self.call_uuid or None,
+                    "run_id": identity.call_uuid or None,
                     "metadata": {
                         "channel": "voice",
-                        "call_uuid": self.call_uuid,
+                        "call_uuid": identity.call_uuid,
                         "brand": "superyou",
                     },
                 },
@@ -202,7 +212,7 @@ class CallMemory:
                 else:
                     self.ten_env.log_info(
                         f"[memory] queued {len(turns)} turns for extraction "
-                        f"(user {self.caller})"
+                        f"(user {identity.caller})"
                     )
         except Exception as e:
             self.ten_env.log_warn(f"[memory] mem0 add failed: {e}")
@@ -212,11 +222,14 @@ class CallMemory:
         if not (self._has_identity() and self._unsaved and self.session):
             return
         turns, self._unsaved = self._unsaved, []
-        await self._add_memories(turns)
+        identity = CallIdentitySnapshot(self.call_uuid, self.caller)
+        await self._add_memories(turns, identity)
 
     # ---- turn recording -------------------------------------------------
 
-    def record_turn(self, role: str, content: str):
+    def record_turn(
+        self, role: str, content: str, turn_id: int | None = None
+    ):
         """Buffer a finished turn, mirror it to the dashboard, and run
         per-round memory writes (blog decision #1)."""
         if not content:
@@ -235,30 +248,41 @@ class CallMemory:
                 turns, self._unsaved = self._unsaved, []
                 self._spawn_write(turns)
         if self.demo_api_base and self.call_uuid:
-            asyncio.create_task(self._post_transcript(role, content))
+            event = self._transcripts.create(role, content, turn_id)
+            self._track_task(self._post_transcript(event))
 
     # ---- transcripts (D1 via Worker) -----------------------------------
 
-    async def _post_transcript(self, role: str, content: str):
-        try:
-            headers = (
-                {"x-admin-token": self.demo_api_token}
-                if self.demo_api_token
-                else None
-            )
-            async with self.session.post(
-                f"{self.demo_api_base}/demo/transcripts",
-                headers=headers,
-                json={
-                    "call_id": self.call_uuid,
-                    "caller": self.caller,
-                    "role": role,
-                    "content": content,
-                },
-            ) as resp:
-                if resp.status != 200:
+    async def _post_transcript(self, event: TranscriptEvent):
+        headers = (
+            {
+                "x-admin-token": self.demo_api_token,
+                "x-idempotency-key": event.idempotency_key,
+            }
+            if self.demo_api_token
+            else {"x-idempotency-key": event.idempotency_key}
+        )
+        for attempt in range(3):
+            try:
+                async with self.session.post(
+                    f"{self.demo_api_base}/demo/transcripts",
+                    headers=headers,
+                    json=event.as_payload(),
+                ) as resp:
+                    if resp.status == 200:
+                        return
+                    if resp.status < 500:
+                        self.ten_env.log_warn(
+                            f"[memory] transcript POST HTTP {resp.status}"
+                        )
+                        return
                     self.ten_env.log_warn(
-                        f"[memory] transcript POST HTTP {resp.status}"
+                        f"[memory] transcript POST HTTP {resp.status}; retrying"
                     )
-        except Exception as e:
-            self.ten_env.log_warn(f"[memory] transcript POST failed: {e}")
+            except Exception as e:
+                if attempt == 2:
+                    self.ten_env.log_warn(
+                        f"[memory] transcript POST failed: {e}"
+                    )
+                    return
+            await asyncio.sleep(0.1 * (2**attempt))

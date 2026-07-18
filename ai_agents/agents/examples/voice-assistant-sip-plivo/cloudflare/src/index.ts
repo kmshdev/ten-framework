@@ -349,14 +349,31 @@ async function handleTranscripts(
       caller?: string;
       role?: string;
       content?: string;
+      sequence?: number;
+      source_timestamp_ms?: number;
+      turn_id?: number | null;
+      idempotency_key?: string;
     };
     if (!body.call_id || !body.role || !body.content) {
       return json({ error: "call_id, role, content are required" }, 400);
     }
+    const idempotencyKey =
+      body.idempotency_key ?? request.headers.get("x-idempotency-key");
     await env.DB.prepare(
-      "INSERT INTO transcripts (call_id, caller, role, content) VALUES (?, ?, ?, ?)",
+      `INSERT OR IGNORE INTO transcripts
+       (call_id, caller, role, content, sequence, source_timestamp_ms, turn_id, idempotency_key)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-      .bind(body.call_id, body.caller ?? null, body.role, body.content)
+      .bind(
+        body.call_id,
+        body.caller ?? null,
+        body.role,
+        body.content,
+        body.sequence ?? null,
+        body.source_timestamp_ms ?? null,
+        body.turn_id ?? null,
+        idempotencyKey,
+      )
       .run();
     return json({ ok: true });
   }
@@ -364,7 +381,9 @@ async function handleTranscripts(
   const callId = url.searchParams.get("call_id");
   if (callId) {
     const rows = await env.DB.prepare(
-      "SELECT role, content, caller, ts FROM transcripts WHERE call_id = ? ORDER BY id ASC",
+      `SELECT role, content, caller, sequence, source_timestamp_ms, turn_id, ts
+       FROM transcripts WHERE call_id = ?
+       ORDER BY COALESCE(sequence, id) ASC, id ASC`,
     )
       .bind(callId)
       .all();

@@ -34,15 +34,15 @@ class StreamIdAdapterExtension(AsyncExtension):
         # audio_frame_name = frame.get_name()
         # ten_env.log_info("on_audio_frame name {}".format(audio_frame_name))
 
-        stream_id, _ = frame.get_property_int("stream_id")
+        stream_id, _ = frame.get_property_string("plivo_stream_id")
+        call_uuid, _ = frame.get_property_string("call_uuid")
+        if not stream_id:
+            legacy_stream_id, _ = frame.get_property_int("stream_id")
+            stream_id = str(legacy_stream_id)
 
-        frame.set_property_from_json(
-            "metadata",
-            json.dumps(
-                {
-                    "session_id": f"{stream_id}",
-                }
-            ),
-        )
+        metadata = {"session_id": stream_id}
+        if call_uuid:
+            metadata["call_uuid"] = call_uuid
+        frame.set_property_from_json("metadata", json.dumps(metadata))
 
         await ten_env.send_audio_frame(audio_frame=frame)

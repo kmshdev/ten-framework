@@ -638,7 +638,7 @@ class PlivoCallServer:
                                     and self.extension_instance
                                 ):
                                     await self.extension_instance._forward_audio_to_ten(
-                                        audio_payload, stream_id
+                                        audio_payload, stream_id, call_uuid
                                     )
                                 else:
                                     self._log_debug(
