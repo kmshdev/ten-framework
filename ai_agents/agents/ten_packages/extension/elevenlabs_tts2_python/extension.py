@@ -149,6 +149,10 @@ class ElevenLabsTTS2Extension(AsyncTTS2BaseExtension):
                     vendor_info={},
                 ),
             )
+            # Returning from a failed lifecycle hook leaves TEN waiting for an
+            # extension that can never become ready. Propagate the failure so
+            # graph startup terminates deterministically.
+            raise
 
     async def on_stop(self, ten_env: AsyncTenEnv) -> None:
         # Close client connection

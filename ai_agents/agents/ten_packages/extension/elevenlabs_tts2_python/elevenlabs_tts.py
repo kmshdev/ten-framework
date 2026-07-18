@@ -198,7 +198,7 @@ class ElevenLabsTTS2Synthesizer:
         if not self.channel_tasks:
             return
 
-        (done, pending) = await asyncio.wait(
+        done, pending = await asyncio.wait(
             self.channel_tasks,
             return_when=asyncio.FIRST_EXCEPTION,
         )
