@@ -164,7 +164,7 @@ jobs:
           curl --fail --silent --show-error \
             -X POST "$STAGING_URL/admin/restart" \
             -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
-            | jq -e '.ok == true'
+            | jq -e '.restarted == true'
 
       - name: Wait for semantic readiness
         run: |
