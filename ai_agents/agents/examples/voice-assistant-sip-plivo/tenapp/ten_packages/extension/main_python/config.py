@@ -3,6 +3,9 @@ from pydantic import BaseModel, Field
 
 class MainControlConfig(BaseModel):
     greeting: str = "Hello, I am your AI assistant."
+    mode: str = Field(default="worker", description="coordinator or call worker")
+    call_graph_name: str = Field(default="va_in_hybrid_stack")
+    coordinator_graph_id: str = Field(default="plivo_coordinator")
 
     # Plivo configuration
     plivo_auth_id: str = Field(default="", description="Plivo Auth ID")

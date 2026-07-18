@@ -147,6 +147,7 @@ class MainControlExtension(AsyncExtension):
         self.turn_id: int = 0
         self.session_id: str = ""
         self.call_uuid: str = ""
+        self.mode: str = "worker"
         self._interrupted_utterance: bool = False
         self._received_user_turn: bool = False
         self.memory: Optional[CallMemory] = None
@@ -156,13 +157,15 @@ class MainControlExtension(AsyncExtension):
         self._plivo_audio_stats: Dict[str, Dict[str, Any]] = {}
 
     def is_ready(self) -> bool:
+        if self.mode == "coordinator":
+            return bool(
+                self.runtime_ready
+                and not self.stopped
+                and self.server_task
+                and not self.server_task.done()
+            )
         return bool(
-            self.runtime_ready
-            and not self.stopped
-            and self.agent
-            and self.memory
-            and self.server_task
-            and not self.server_task.done()
+            self.runtime_ready and not self.stopped and self.agent and self.memory
         )
 
     def _current_metadata(self) -> dict:
@@ -228,12 +231,15 @@ class MainControlExtension(AsyncExtension):
         self.ten_env.log_info(f"Config12: {config_json}")
 
         self.config = MainControlConfig.model_validate_json(config_json)
+        self.mode = self.config.mode
 
         self.ten_env.log_info(f"Config11: {self.config}")
 
-        self.agent = Agent(ten_env)
+        if self.mode == "coordinator":
+            await self._start_server()
+            return
 
-        # Caller memory (mem0) + transcript persistence (Worker /demo API)
+        self.agent = Agent(ten_env)
         self.memory = CallMemory(
             ten_env,
             mem0_api_key=self.config.mem0_api_key,
@@ -242,8 +248,6 @@ class MainControlExtension(AsyncExtension):
         )
         await self.memory.start()
 
-        # Log LLM tool invocations to the transcript stream so the
-        # dashboard shows the agent's actions (order lookup, KB, transfer).
         async def _on_tool_call(_ten_env, name: str, arguments: dict):
             self.memory.record_turn(
                 "tool", f"{name}({json.dumps(arguments, ensure_ascii=False)})"
@@ -251,15 +255,11 @@ class MainControlExtension(AsyncExtension):
 
         self.agent.llm_exec.on_tool_call = _on_tool_call
 
-        # Now auto-register decorated methods
         for attr_name in dir(self):
             fn = getattr(self, attr_name)
             event_type = getattr(fn, "_agent_event_type", None)
             if event_type:
                 self.agent.on(event_type, fn)
-
-        # Start the Plivo call server
-        await self._start_server()
 
     async def _start_server(self):
         """Start the Plivo call server in the same process"""
@@ -289,6 +289,33 @@ class MainControlExtension(AsyncExtension):
         except Exception as e:
             self.ten_env.log_error(f"Failed to start server: {str(e)}")
             raise
+
+    async def _start_call_graph(self, call_uuid: str | None = None) -> str:
+        cmd = Cmd.create("start_graph")
+        cmd.set_property_string("predefined_graph_name", self.config.call_graph_name)
+        result, error = await self.ten_env.send_cmd(cmd)
+        if error or not result:
+            raise RuntimeError(f"failed to start call graph: {error}")
+        graph_id, property_error = result.get_property_string("graph_id")
+        if property_error or not graph_id:
+            raise RuntimeError(f"start_graph returned no graph_id: {property_error}")
+        if call_uuid:
+            await self.server_instance.active_call_sessions.bind_graph(
+                call_uuid, graph_id
+            )
+        return graph_id
+
+    async def _stop_call_graph(self, graph_id: str) -> None:
+        cmd = Cmd.create("stop_graph")
+        cmd.set_property_string("graph_id", graph_id)
+        _, error = await self.ten_env.send_cmd(cmd)
+        if error:
+            raise RuntimeError(f"failed to stop graph {graph_id}: {error}")
+
+    async def graph_smoke_test(self) -> str:
+        graph_id = await self._start_call_graph()
+        await self._stop_call_graph(graph_id)
+        return graph_id
 
     async def _stop_server(self):
         """Stop the Plivo call server"""
@@ -452,48 +479,61 @@ class MainControlExtension(AsyncExtension):
         self.stopped = True
         self.runtime_ready = False
 
-        # End all active calls and cleanup
-        for call_uuid in list(self.server_instance.active_call_sessions.keys()):
-            await self._end_call_and_cleanup(call_uuid)
-
-        # Stop the server
-        await self._stop_server()
+        if self.mode == "coordinator":
+            if self.server_instance:
+                for call_uuid in list(
+                    self.server_instance.active_call_sessions.keys()
+                ):
+                    await self._end_call_and_cleanup(call_uuid)
+            await self._stop_server()
+            return
 
         if self.memory:
             await self.memory.save()
             await self.memory.stop()
-
-        await self.agent.stop()
+        if self.agent:
+            await self.agent.stop()
 
     async def on_cmd(self, ten_env: AsyncTenEnv, cmd: Cmd):
-        await self.agent.on_cmd(cmd)
+        if self.agent:
+            await self.agent.on_cmd(cmd)
 
     async def on_data(self, ten_env: AsyncTenEnv, data: Data):
-        await self.agent.on_data(data)
+        if data.get_name() == "call_start" and self.mode == "worker":
+            payload_json, _ = data.get_property_to_json(None)
+            await self._initialize_call_worker(json.loads(payload_json or "{}"))
+            return
+        if data.get_name() == "clear_playback" and self.mode == "coordinator":
+            payload_json, _ = data.get_property_to_json(None)
+            payload = json.loads(payload_json or "{}")
+            await self._clear_call_playback(str(payload.get("call_uuid", "")))
+            return
+        if self.agent:
+            await self.agent.on_data(data)
 
     async def on_audio_frame(
         self, ten_env: AsyncTenEnv, audio_frame: AudioFrame
     ) -> None:
-        """Handle outgoing audio frames from TEN framework"""
+        """Route each TTS frame to exactly one call-owned Plivo stream."""
         try:
-            if audio_frame.get_name() == "pcm_frame":
-                audio_data = audio_frame.get_buf()
-                if not self.server_instance:
-                    ten_env.log_error(
-                        "Received TTS audio frame before Plivo server was initialized"
-                    )
+            if audio_frame.get_name() != "pcm_frame":
+                return
+            if self.mode == "worker":
+                if not self.call_uuid:
+                    ten_env.log_error("Dropping TTS frame before call_start")
                     return
+                audio_frame.set_property_string("call_uuid", self.call_uuid)
+                audio_frame.set_dests(
+                    [Loc("", self.config.coordinator_graph_id, "main_control")]
+                )
+                await ten_env.send_audio_frame(audio_frame)
+                return
 
-                active_sessions = list(self.server_instance.active_call_sessions.keys())
-                if not active_sessions:
-                    ten_env.log_info(
-                        f"Received TTS audio frame with no active Plivo session: bytes={len(audio_data)}"
-                    )
-                    return
-
-                # Send audio to all active Plivo calls
-                for call_uuid in active_sessions:
-                    await self.send_audio_to_plivo(audio_data, call_uuid)
+            call_uuid, _ = audio_frame.get_property_string("call_uuid")
+            if not call_uuid:
+                ten_env.log_error("Dropping unowned TTS frame at coordinator")
+                return
+            await self.send_audio_to_plivo(audio_frame.get_buf(), call_uuid)
         except Exception as e:
             ten_env.log_error(f"Failed to handle audio frame: {e}")
 
@@ -587,27 +627,23 @@ class MainControlExtension(AsyncExtension):
         await _send_data(
             self.ten_env, "tts_flush", "tts", {"flush_id": str(uuid.uuid4())}
         )
-        # Clear Plivo's playback buffer so the agent stops talking
-        # immediately on barge-in (flushing LLM/TTS alone leaves several
-        # seconds of already-queued audio playing).
-        for session in list(
-            self.server_instance.active_call_sessions.values()
-        ):
-            websocket = session.get("websocket")
-            if not websocket:
-                continue
-            try:
-                await websocket.send_text(
-                    json.dumps(
-                        {
-                            "event": "clearAudio",
-                            "streamId": session.get("stream_id", ""),
-                        }
-                    )
-                )
-            except Exception as e:
-                self.ten_env.log_error(f"clearAudio send failed: {e}")
+        data = Data.create("clear_playback")
+        data.set_property_from_json(None, json.dumps({"call_uuid": self.call_uuid}))
+        data.set_dests(
+            [Loc("", self.config.coordinator_graph_id, "main_control")]
+        )
+        await self.ten_env.send_data(data)
         self.ten_env.log_info("[MainControlExtension] Interrupt signal sent")
+
+    async def _clear_call_playback(self, call_uuid: str) -> None:
+        session = self.server_instance.active_call_sessions.get(call_uuid)
+        if not session or not session.websocket:
+            return
+        await session.websocket.send_text(
+            json.dumps(
+                {"event": "clearAudio", "streamId": session.stream_id or ""}
+            )
+        )
 
     # WebSocket and audio processing methods
     def _setup_audio_dump_directory(self):
@@ -654,11 +690,18 @@ class MainControlExtension(AsyncExtension):
             audio_frame.set_samples_per_channel(len(pcm_data) // (2 * 1))
             audio_frame.set_property_string("plivo_stream_id", stream_id)
             audio_frame.set_property_string("call_uuid", call_uuid)
+            session = self.server_instance.active_call_sessions.get(call_uuid)
+            graph_id = session.graph_id if session else None
+            if not graph_id:
+                self.ten_env.log_warn(
+                    f"Dropping inbound audio before graph is ready for {call_uuid}"
+                )
+                return
             audio_frame.set_dests(
                 [
                     Loc(
                         app_uri="",
-                        graph_id="",
+                        graph_id=graph_id,
                         extension_name="streamid_adapter",
                     )
                 ]
@@ -938,119 +981,95 @@ class MainControlExtension(AsyncExtension):
         await self._end_call_and_cleanup(call_uuid)
 
     async def on_websocket_connected(self, call_uuid: str):
-        """Called when websocket connection is established for a call"""
-        try:
-            self.ten_env.log_info(
-                f"WebSocket connected for call {call_uuid}, sending greeting TTS"
+        """Start and initialize the isolated TEN graph for this call."""
+        session = self.server_instance.active_call_sessions[call_uuid]
+        graph_id = await self._start_call_graph(call_uuid)
+        payload = {
+            "call_uuid": call_uuid,
+            "stream_id": session.stream_id,
+            "caller": session.caller or session.phone_number or "",
+            "persona_phone": session.persona_phone or "",
+            "persona_name": session.persona_name or "",
+            "opening_message": session.opening_message or "",
+            "campaign_context": session.campaign_context or "",
+        }
+        data = Data.create("call_start")
+        data.set_property_from_json(None, json.dumps(payload))
+        data.set_dests([Loc("", graph_id, "main_control")])
+        error = await self.ten_env.send_data(data)
+        if error:
+            await self._stop_call_graph(graph_id)
+            raise RuntimeError(f"failed to initialize call graph: {error}")
+        self.ten_env.log_info(
+            f"Started isolated graph {graph_id} for call {call_uuid}"
+        )
+
+    async def _initialize_call_worker(self, payload: dict):
+        self.call_uuid = str(payload.get("call_uuid", ""))
+        self.session_id = str(payload.get("stream_id", ""))
+        caller = str(payload.get("caller", ""))
+        persona_phone = str(payload.get("persona_phone", ""))
+        persona_name = str(payload.get("persona_name", ""))
+        opening_message = str(payload.get("opening_message", ""))
+        campaign_context = str(payload.get("campaign_context", ""))
+        context_phone = persona_phone or caller
+        self.memory.begin_call(self.call_uuid, context_phone)
+
+        memory_block = await self.memory.recall()
+        if memory_block:
+            self.agent.llm_exec.contexts.append(
+                LLMMessageContent(
+                    role="system",
+                    content=(
+                        "Known facts about this caller from previous interactions "
+                        f"(mem0):\n{memory_block}\nUse them naturally; do not recite them."
+                    ),
+                )
+            )
+        if persona_name:
+            self.agent.llm_exec.contexts.append(
+                LLMMessageContent(
+                    role="system",
+                    content=f"You are speaking with {persona_name}. Address them by name naturally.",
+                )
+            )
+        if campaign_context:
+            self.agent.llm_exec.contexts.append(
+                LLMMessageContent(
+                    role="system",
+                    content=(
+                        f"Outbound campaign facts:\n{campaign_context}\n"
+                        "Use these facts only for this call. If the recipient is not the "
+                        "intended customer, do not disclose private details."
+                    ),
+                )
+            )
+        if context_phone:
+            self.agent.llm_exec.contexts.append(
+                LLMMessageContent(
+                    role="system",
+                    content=(
+                        f"The caller's phone number is {context_phone}. Use it for order "
+                        "lookups without asking for it again."
+                    ),
+                )
             )
 
-            # Bind this call to the memory/transcript layer. The caller's
-            # number arrives via the answer webhook (inbound) or the call
-            # API (outbound).
-            session = self.server_instance.active_call_sessions.get(
-                call_uuid, {}
-            )
-            caller = session.get("caller") or session.get("phone_number", "")
-
-            # Demo console override: an outbound call can be started "posing
-            # as" a seeded customer (persona_phone/persona_name from
-            # POST /api/call). When present, memory recall and order
-            # lookups are keyed to the persona's identity instead of the
-            # real dialed number, so the agent treats the call as if that
-            # customer were calling in.
-            persona_phone = session.get("persona_phone") or ""
-            persona_name = session.get("persona_name") or ""
-            opening_message = session.get("opening_message") or ""
-            campaign_context = session.get("campaign_context") or ""
-            context_phone = persona_phone or caller
-
-            self.memory.begin_call(call_uuid, context_phone)
-
-            # Continual learning (mem0): recall what we know about this
-            # caller and prime the LLM context before the first turn.
-            memory_block = await self.memory.recall()
-            if memory_block:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            "Known facts about this caller from previous "
-                            f"interactions (mem0):\n{memory_block}\n"
-                            "Use them naturally; do not recite them."
-                        ),
-                    )
-                )
-            if persona_name:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            f"You are speaking with {persona_name}. Address "
-                            "them by name naturally, as you would any "
-                            "returning customer."
-                        ),
-                    )
-                )
-            if campaign_context:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            "Outbound campaign facts:\n"
-                            f"{campaign_context}\n"
-                            "Use these facts only for this call. If the recipient says they "
-                            "are not the intended customer, do not disclose order or coupon "
-                            "details; apologize and end the call politely."
-                        ),
-                    )
-                )
-            if context_phone:
-                self.agent.llm_exec.contexts.append(
-                    LLMMessageContent(
-                        role="system",
-                        content=(
-                            f"The caller's phone number is {context_phone}. "
-                            "Use it for order lookups without asking for it "
-                            "again."
-                        ),
-                    )
-                )
-
-            # Outbound scenario calls can provide a verified opening; ordinary
-            # inbound and demo calls retain the configured support greeting.
-            greeting_text = opening_message or self.config.greeting
-            await self._send_to_tts(greeting_text, True)
-            self.memory.record_turn("assistant", greeting_text, self.turn_id)
-
-            session_keys = sorted(
-                self.server_instance.active_call_sessions.get(call_uuid, {}).keys()
-            )
-            self.ten_env.log_info(
-                f"Greeting TTS sent for call {call_uuid}: {greeting_text}; "
-                f"session_keys={session_keys}"
-            )
-        except Exception as e:
-            self.ten_env.log_error(f"Failed to send greeting TTS: {str(e)}")
+        greeting_text = opening_message or self.config.greeting
+        await self._send_to_tts(greeting_text, True)
+        self.memory.record_turn("assistant", greeting_text, self.turn_id)
+        self.ten_env.log_info(
+            f"Call worker initialized for {self.call_uuid}; greeting queued"
+        )
 
     async def on_call_ended(self, call_uuid: str):
-        """Called by the server when Plivo reports the call finished."""
+        """Stop only the TEN graph owned by the completed call."""
         try:
-            stats = self._plivo_audio_stats.pop(call_uuid, None)
-            if stats and self.ten_env:
+            session = self.server_instance.active_call_sessions.get(call_uuid)
+            if session and session.graph_id:
+                await self._stop_call_graph(session.graph_id)
                 self.ten_env.log_info(
-                    f"Plivo audio summary for {call_uuid}: "
-                    f"chunks={stats.get('chunks', 0)} pcm16_bytes={stats.get('bytes', 0)} "
-                    f"checkpoints_sent={stats.get('checkpoints_sent', [])} "
-                    f"played_checkpoints={stats.get('played_checkpoints', [])} "
-                    f"cleared_audio={stats.get('cleared_audio', 0)}"
+                    f"Stopped isolated graph {session.graph_id} for {call_uuid}"
                 )
-            if self.memory and self.memory.call_uuid == call_uuid:
-                await self.memory.save()
-                self.memory.begin_call("", "")
-            # Reset conversational state for the next call
-            self.agent.llm_exec.contexts.clear()
-            self.turn_id = 0
-            self._interrupted_utterance = False
-            self._received_user_turn = False
         except Exception as e:
             self.ten_env.log_error(f"on_call_ended failed: {e}")

@@ -178,6 +178,10 @@ jobs:
           curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" | jq -e '.status == "ready"'
           curl --fail --silent --show-error "$STAGING_URL/api/calls" | jq -e '.success == true'
           curl --fail --silent --show-error \
+            -X POST "$STAGING_URL/api/admin/graph-smoke" \
+            -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+            | jq -e '.ok == true and .stopped == true and (.graph_id | length > 0)'
+          curl --fail --silent --show-error \
             -X POST "$STAGING_URL/demo/kb/seed" \
             -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
             | jq -e '.ok == true and .upserted > 0'

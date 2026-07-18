@@ -73,6 +73,17 @@ class CallRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(second_session.termination_reason, "status:completed")
         self.assertEqual(second_session.ended_at, ended_at)
 
+    async def test_graph_binding_is_call_scoped(self):
+        registry = CallRegistry(capacity=2)
+        await registry.bind_call_uuid("call-1")
+        await registry.bind_call_uuid("call-2")
+
+        await registry.bind_graph("call-1", "graph-1")
+        await registry.bind_graph("call-2", "graph-2")
+
+        self.assertEqual(registry["call-1"].graph_id, "graph-1")
+        self.assertEqual(registry["call-2"].graph_id, "graph-2")
+
     async def test_websocket_detach_only_affects_owner(self):
         registry = CallRegistry(capacity=2)
         first = await registry.bind_call_uuid("call-1")

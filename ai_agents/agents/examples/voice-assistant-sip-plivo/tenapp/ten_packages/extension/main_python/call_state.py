@@ -184,6 +184,12 @@ class CallRegistry(MutableMapping[str, CallSession]):
             session.status = CallStatus.STREAMING
             return session
 
+    async def bind_graph(self, call_uuid: str, graph_id: str) -> CallSession:
+        async with self._lock:
+            session = self._sessions[call_uuid]
+            session.graph_id = graph_id
+            return session
+
     async def detach_websocket(self, websocket: Any) -> str | None:
         async with self._lock:
             for key, session in self._sessions.items():

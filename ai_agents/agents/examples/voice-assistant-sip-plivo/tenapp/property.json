@@ -61,6 +61,8 @@
               "addon": "main_python",
               "extension_group": "control",
               "property": {
+                "mode": "worker",
+                "coordinator_graph_id": "plivo_coordinator",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
                 "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
                 "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
@@ -230,6 +232,8 @@
               "addon": "main_python",
               "extension_group": "control",
               "property": {
+                "mode": "worker",
+                "coordinator_graph_id": "plivo_coordinator",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
                 "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
                 "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
@@ -339,8 +343,37 @@
         }
       },
       {
-        "name": "va_in_hybrid_stack",
+        "name": "plivo_coordinator",
         "auto_start": true,
+        "singleton": true,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "main_control",
+              "addon": "main_python",
+              "extension_group": "control",
+              "property": {
+                "mode": "coordinator",
+                "call_graph_name": "va_in_hybrid_stack",
+                "coordinator_graph_id": "plivo_coordinator",
+                "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
+                "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
+                "plivo_from_number": "${env:PLIVO_FROM_NUMBER}",
+                "plivo_server_port": 9000,
+                "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
+                "plivo_use_https": true,
+                "plivo_use_wss": true
+              }
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
+        "name": "va_in_hybrid_stack",
+        "auto_start": false,
+        "singleton": false,
         "graph": {
           "nodes": [
             {
@@ -397,6 +430,8 @@
               "addon": "main_python",
               "extension_group": "control",
               "property": {
+                "mode": "worker",
+                "coordinator_graph_id": "plivo_coordinator",
                 "greeting": "Namaste! Welcome to SuperYou support. Aap Hindi ya English mein baat kar sakte hain. How can I help you today?",
                 "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
                 "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",

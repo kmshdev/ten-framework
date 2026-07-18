@@ -545,6 +545,18 @@ class PlivoCallServer:
                 self._log_error(f"Failed to handle status webhook: {str(e)}")
                 raise HTTPException(status_code=500, detail={"code": "status_webhook_failed"}) from e
 
+        @self.app.post("/api/admin/graph-smoke")
+        async def graph_smoke(request: Request):
+            if request.headers.get("x-admin-token") != self.config.plivo_auth_token:
+                raise HTTPException(status_code=401, detail="unauthorized")
+            extension = getattr(self, "extension_instance", None)
+            if not extension:
+                raise HTTPException(status_code=503, detail="coordinator unavailable")
+            graph_id = await extension.graph_smoke_test()
+            return JSONResponse(
+                content={"ok": True, "graph_id": graph_id, "stopped": True}
+            )
+
         @self.app.get("/livez")
         async def liveness_check():
             return JSONResponse(
