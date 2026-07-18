@@ -157,6 +157,15 @@ jobs:
           npx wrangler secret bulk .generated/secrets.json --config .generated/wrangler.staging.json
           rm -f .generated/secrets.json
 
+      - name: Restart staging container onto the new image
+        env:
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "$STAGING_URL/admin/restart" \
+            -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+            | jq -e '.ok == true'
+
       - name: Wait for semantic readiness
         run: |
           ready=false
