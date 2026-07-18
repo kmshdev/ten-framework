@@ -66,7 +66,7 @@ jobs:
             --platform linux/amd64 \
             -f ai_agents/agents/examples/voice-assistant-sip-plivo/Dockerfile.cloudflare \
             -t "$IMAGE_NAME:$GITHUB_SHA" \
-            .
+            ai_agents
 
       - name: Push image to Cloudflare registry
         run: |
