@@ -45,13 +45,16 @@ jobs:
         run: |
           python3 -m py_compile \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/call_state.py \
+            ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/graph_probe.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/persistence.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/memory.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/server.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/extension.py \
             ai_agents/agents/ten_packages/extension/streamid_adapter/extension.py
           python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_call_state.py -q
+          python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_graph_probe.py -q
           python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_persistence.py -q
+          python3 -m json.tool ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/property.json >/dev/null
           "$CF_DIR/node_modules/.bin/tsc" --noEmit -p "$CF_DIR/tsconfig.json"
 
       - name: Verify Cloudflare credentials
@@ -184,7 +187,10 @@ jobs:
           PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
         run: |
           curl --fail --silent --show-error "$STAGING_URL/health" | jq -e '.status == "healthy"'
-          curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" | jq -e '.status == "ready"'
+          expected_revision="${GITHUB_SHA:0:16}"
+          curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" \
+            | jq -e --arg revision "$expected_revision" \
+              '.status == "ready" and .deploy_revision == $revision'
           curl --fail --silent --show-error "$STAGING_URL/api/calls" | jq -e '.success == true'
           graph_ready=false
           for attempt in 1 2 3; do

@@ -66,6 +66,7 @@ export class SuperYouAgent extends Container<Env> {
       // (order lookups, KB search, transcript persistence).
       DEMO_API_BASE: publicHost ? `https://${publicHost}` : "",
       WEATHERAPI_API_KEY: env.WEATHERAPI_API_KEY ?? "",
+      DEPLOY_REVISION: env.DEPLOY_REVISION ?? "",
     };
   }
 

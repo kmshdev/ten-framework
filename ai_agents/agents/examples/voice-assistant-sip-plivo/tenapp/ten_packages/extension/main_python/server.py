@@ -567,6 +567,7 @@ class PlivoCallServer:
                         "full": probe == "full",
                         "probe": probe,
                         "graph_name": graph_name,
+                        "deploy_revision": os.getenv("DEPLOY_REVISION", ""),
                     }
                 )
             except Exception as exc:
@@ -598,6 +599,7 @@ class PlivoCallServer:
                 content={
                     "status": "ready" if ready else "starting",
                     "active_calls": len(self.active_call_sessions),
+                    "deploy_revision": os.getenv("DEPLOY_REVISION", ""),
                     "server_time": datetime.now().isoformat(),
                 },
                 headers={} if ready else {"Retry-After": "2"},
