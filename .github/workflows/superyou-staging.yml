@@ -9,6 +9,7 @@ on:
       - ".github/workflows/superyou-staging.yml"
       - "ai_agents/agents/examples/voice-assistant-sip-plivo/**"
       - "ai_agents/agents/ten_packages/extension/streamid_adapter/**"
+      - "ai_agents/agents/ten_packages/extension/elevenlabs_tts2_python/**"
 
 concurrency:
   group: superyou-staging
@@ -50,7 +51,10 @@ jobs:
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/memory.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/server.py \
             ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/extension.py \
+            ai_agents/agents/ten_packages/extension/elevenlabs_tts2_python/elevenlabs_tts.py \
+            ai_agents/agents/ten_packages/extension/elevenlabs_tts2_python/shutdown.py \
             ai_agents/agents/ten_packages/extension/streamid_adapter/extension.py
+          python3 ai_agents/agents/ten_packages/extension/elevenlabs_tts2_python/tests/unit/test_shutdown.py -q
           python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_call_state.py -q
           python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_graph_probe.py -q
           python3 ai_agents/agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_persistence.py -q
