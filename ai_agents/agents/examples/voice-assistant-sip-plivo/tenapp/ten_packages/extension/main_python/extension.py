@@ -146,6 +146,7 @@ class MainControlExtension(AsyncExtension):
         self.turn_id: int = 0
         self.session_id: str = "0"
         self._interrupted_utterance: bool = False
+        self._received_user_turn: bool = False
         self.memory: Optional[CallMemory] = None
         # Low-volume production diagnostics for the Plivo playback path.
         # Keyed by call UUID so each call logs only the first few audio chunks
@@ -357,7 +358,15 @@ class MainControlExtension(AsyncExtension):
         if not event.text:
             return
 
-        if self._is_unsupported_tv_or_noise(event.text):
+        normalized_text = " ".join(event.text.strip().lower().split())
+        # A greeting is a valid first turn after Maya's opening. It used to be
+        # filtered as background filler, leaving callers who said only "hello"
+        # with silence even though Plivo had delivered the greeting correctly.
+        is_initial_greeting = (
+            not self._received_user_turn
+            and normalized_text in {"hello", "hi", "namaste", "नमस्ते"}
+        )
+        if self._is_unsupported_tv_or_noise(event.text) and not is_initial_greeting:
             self.ten_env.log_info(
                 f"[MainControlExtension] Ignored ASR noise/filler: {event.text}"
             )
@@ -381,6 +390,7 @@ class MainControlExtension(AsyncExtension):
             )
             await self.agent.queue_llm_input(llm_input)
             self.memory.record_turn("user", event.text)
+            self._received_user_turn = True
             self._interrupted_utterance = False
         await self._send_transcript("user", event.text, event.final, stream_id)
 
@@ -1019,5 +1029,6 @@ class MainControlExtension(AsyncExtension):
             self.agent.llm_exec.contexts.clear()
             self.turn_id = 0
             self._interrupted_utterance = False
+            self._received_user_turn = False
         except Exception as e:
             self.ten_env.log_error(f"on_call_ended failed: {e}")
