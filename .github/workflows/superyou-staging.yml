@@ -186,10 +186,22 @@ jobs:
           curl --fail --silent --show-error "$STAGING_URL/health" | jq -e '.status == "healthy"'
           curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" | jq -e '.status == "ready"'
           curl --fail --silent --show-error "$STAGING_URL/api/calls" | jq -e '.success == true'
-          curl --fail --silent --show-error --max-time 100 \
-            -X POST "$STAGING_URL/api/admin/graph-smoke" \
+          graph_ready=false
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --max-time 130 \
+              -X POST "$STAGING_URL/api/admin/graph-smoke" \
+              -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+              | jq -e '.ok == true and .stopped == true and (.graph_id | length > 0)'; then
+              graph_ready=true
+              break
+            fi
+            echo "retrying TEN lifecycle smoke ($attempt/3)"
+          done
+          test "$graph_ready" = true
+          curl --fail --silent --show-error --max-time 130 \
+            -X POST "$STAGING_URL/api/admin/graph-smoke?full=true" \
             -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
-            | jq -e '.ok == true and .stopped == true and (.graph_id | length > 0)'
+            | jq -e '.ok == true and .stopped == true and .full == true and (.graph_id | length > 0)'
           curl --fail --silent --show-error \
             -X POST "$STAGING_URL/demo/kb/seed" \
             -H "x-admin-token: $PLIVO_AUTH_TOKEN" \

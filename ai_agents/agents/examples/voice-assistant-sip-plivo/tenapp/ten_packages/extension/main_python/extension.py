@@ -322,9 +322,9 @@ class MainControlExtension(AsyncExtension):
         if error:
             raise RuntimeError(f"failed to stop graph {graph_id}: {error}")
 
-    async def graph_smoke_test(self) -> str:
+    async def graph_smoke_test(self, full: bool = False) -> str:
         graph_id = await self._start_call_graph(
-            graph_name="graph_lifecycle_smoke"
+            graph_name=(self.config.call_graph_name if full else "graph_lifecycle_smoke")
         )
         await self._stop_call_graph(graph_id)
         return graph_id

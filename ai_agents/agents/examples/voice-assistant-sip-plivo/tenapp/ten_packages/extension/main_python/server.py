@@ -553,9 +553,15 @@ class PlivoCallServer:
             if not extension:
                 raise HTTPException(status_code=503, detail="coordinator unavailable")
             try:
-                graph_id = await extension.graph_smoke_test()
+                full = request.query_params.get("full") == "true"
+                graph_id = await extension.graph_smoke_test(full=full)
                 return JSONResponse(
-                    content={"ok": True, "graph_id": graph_id, "stopped": True}
+                    content={
+                        "ok": True,
+                        "graph_id": graph_id,
+                        "stopped": True,
+                        "full": full,
+                    }
                 )
             except Exception as exc:
                 self._log_error(f"Graph smoke failed: {type(exc).__name__}: {exc}")
