@@ -1,0 +1,201 @@
+name: SuperYou staging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - autoresearch/plivo-playback-proof
+    paths:
+      - ".github/workflows/superyou-staging.yml"
+      - "agents/examples/voice-assistant-sip-plivo/**"
+      - "agents/ten_packages/extension/streamid_adapter/**"
+
+concurrency:
+  group: superyou-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_DIR: agents/examples/voice-assistant-sip-plivo/cloudflare
+      IMAGE_NAME: superyou-voice-agent-staging
+      D1_NAME: superyou-demo-staging
+      VECTORIZE_NAME: superyou-kb-staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: agents/examples/voice-assistant-sip-plivo/cloudflare/package-lock.json
+
+      - name: Install Worker dependencies
+        run: npm --prefix "$CF_DIR" ci
+
+      - name: Validate source
+        run: |
+          python3 -m py_compile \
+            agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/call_state.py \
+            agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/persistence.py \
+            agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/memory.py \
+            agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/server.py \
+            agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/extension.py \
+            agents/ten_packages/extension/streamid_adapter/extension.py
+          python3 agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_call_state.py -q
+          python3 agents/examples/voice-assistant-sip-plivo/tenapp/ten_packages/extension/main_python/tests/test_persistence.py -q
+          "$CF_DIR/node_modules/.bin/tsc" --noEmit -p "$CF_DIR/tsconfig.json"
+
+      - name: Verify Cloudflare credentials
+        run: |
+          : "${CLOUDFLARE_API_TOKEN:?CLOUDFLARE_API_TOKEN secret is required}"
+          : "${CLOUDFLARE_ACCOUNT_ID:?CLOUDFLARE_ACCOUNT_ID secret is required}"
+          "$CF_DIR/node_modules/.bin/wrangler" whoami
+
+      - name: Build container image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -f agents/examples/voice-assistant-sip-plivo/Dockerfile.cloudflare \
+            -t "$IMAGE_NAME:$GITHUB_SHA" \
+            .
+
+      - name: Push image to Cloudflare registry
+        run: |
+          "$CF_DIR/node_modules/.bin/wrangler" containers push "$IMAGE_NAME:$GITHUB_SHA"
+          echo "IMAGE_URI=registry.cloudflare.com/$CLOUDFLARE_ACCOUNT_ID/$IMAGE_NAME:$GITHUB_SHA" >> "$GITHUB_ENV"
+
+      - name: Create or locate staging D1 database
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: |
+          database_id="$(npx wrangler d1 list --json | jq -r --arg name "$D1_NAME" '.[] | select((.name // .database_name) == $name) | (.uuid // .id // .database_id)' | head -1)"
+          if [ -z "$database_id" ]; then
+            npx wrangler d1 create "$D1_NAME" --location apac
+            database_id="$(npx wrangler d1 list --json | jq -r --arg name "$D1_NAME" '.[] | select((.name // .database_name) == $name) | (.uuid // .id // .database_id)' | head -1)"
+          fi
+          test -n "$database_id"
+          echo "STAGING_D1_ID=$database_id" >> "$GITHUB_ENV"
+
+      - name: Create staging Vectorize index if needed
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: |
+          if ! npx wrangler vectorize list --json | jq -e --arg name "$VECTORIZE_NAME" '.[] | select((.name // .index_name) == $name)' >/dev/null; then
+            npx wrangler vectorize create "$VECTORIZE_NAME" --dimensions 1024 --metric cosine
+          fi
+
+      - name: Generate isolated staging configuration
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: |
+          node scripts/generate-staging-config.mjs "$IMAGE_URI" "$STAGING_D1_ID"
+          npx wrangler deploy --dry-run --config .generated/wrangler.staging.json
+
+      - name: Apply staging D1 migrations
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: |
+          npx wrangler d1 migrations list "$D1_NAME" --remote --config .generated/wrangler.staging.json
+          npx wrangler d1 migrations apply "$D1_NAME" --remote --config .generated/wrangler.staging.json
+
+      - name: Seed staging demo data
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: npx wrangler d1 execute "$D1_NAME" --remote --file seed.sql --config .generated/wrangler.staging.json
+
+      - name: Deploy staging Worker and Container
+        id: deploy
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        run: |
+          npx wrangler deploy --config .generated/wrangler.staging.json 2>&1 | tee .generated/deploy.log
+          worker_url="$(grep -Eo 'https://[^ ]+\.workers\.dev' .generated/deploy.log | tail -1)"
+          test -n "$worker_url"
+          echo "STAGING_URL=$worker_url" >> "$GITHUB_ENV"
+          echo "url=$worker_url" >> "$GITHUB_OUTPUT"
+
+      - name: Upload staging secrets
+        working-directory: agents/examples/voice-assistant-sip-plivo/cloudflare
+        env:
+          PLIVO_AUTH_ID: ${{ secrets.PLIVO_AUTH_ID }}
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+          PLIVO_FROM_NUMBER: ${{ secrets.PLIVO_FROM_NUMBER }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          ELEVENLABS_TTS_KEY: ${{ secrets.ELEVENLABS_TTS_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
+          MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+          HUMAN_AGENT_NUMBER: ${{ secrets.HUMAN_AGENT_NUMBER }}
+          WEATHERAPI_API_KEY: ${{ secrets.WEATHERAPI_API_KEY }}
+        run: |
+          : "${PLIVO_AUTH_ID:?PLIVO_AUTH_ID secret is required}"
+          : "${PLIVO_AUTH_TOKEN:?PLIVO_AUTH_TOKEN secret is required}"
+          : "${PLIVO_FROM_NUMBER:?PLIVO_FROM_NUMBER secret is required}"
+          : "${OPENAI_API_KEY:?OPENAI_API_KEY secret is required}"
+          : "${ELEVENLABS_TTS_KEY:?ELEVENLABS_TTS_KEY secret is required}"
+          jq -n \
+            --arg PLIVO_AUTH_ID "$PLIVO_AUTH_ID" \
+            --arg PLIVO_AUTH_TOKEN "$PLIVO_AUTH_TOKEN" \
+            --arg PLIVO_FROM_NUMBER "$PLIVO_FROM_NUMBER" \
+            --arg PLIVO_PUBLIC_SERVER_URL "$STAGING_URL" \
+            --arg DEEPGRAM_API_KEY "$DEEPGRAM_API_KEY" \
+            --arg OPENAI_API_KEY "$OPENAI_API_KEY" \
+            --arg OPENAI_MODEL "$OPENAI_MODEL" \
+            --arg ELEVENLABS_TTS_KEY "$ELEVENLABS_TTS_KEY" \
+            --arg ELEVENLABS_VOICE_ID "$ELEVENLABS_VOICE_ID" \
+            --arg SARVAM_API_KEY "$SARVAM_API_KEY" \
+            --arg MEM0_API_KEY "$MEM0_API_KEY" \
+            --arg HUMAN_AGENT_NUMBER "$HUMAN_AGENT_NUMBER" \
+            --arg WEATHERAPI_API_KEY "$WEATHERAPI_API_KEY" \
+            '{PLIVO_AUTH_ID:$PLIVO_AUTH_ID,PLIVO_AUTH_TOKEN:$PLIVO_AUTH_TOKEN,PLIVO_FROM_NUMBER:$PLIVO_FROM_NUMBER,PLIVO_PUBLIC_SERVER_URL:$PLIVO_PUBLIC_SERVER_URL,DEEPGRAM_API_KEY:$DEEPGRAM_API_KEY,OPENAI_API_KEY:$OPENAI_API_KEY,OPENAI_MODEL:$OPENAI_MODEL,ELEVENLABS_TTS_KEY:$ELEVENLABS_TTS_KEY,ELEVENLABS_VOICE_ID:$ELEVENLABS_VOICE_ID,SARVAM_API_KEY:$SARVAM_API_KEY,MEM0_API_KEY:$MEM0_API_KEY,HUMAN_AGENT_NUMBER:$HUMAN_AGENT_NUMBER,WEATHERAPI_API_KEY:$WEATHERAPI_API_KEY}' \
+            > .generated/secrets.json
+          npx wrangler secret bulk .generated/secrets.json --config .generated/wrangler.staging.json
+          rm -f .generated/secrets.json
+
+      - name: Wait for semantic readiness
+        run: |
+          ready=false
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error --max-time 15 "$STAGING_URL/tenapp/readyz"; then
+              ready=true
+              break
+            fi
+            echo "waiting for staging readiness ($attempt/40)"
+            sleep 5
+          done
+          test "$ready" = true
+
+      - name: Run staging smoke tests
+        env:
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+        run: |
+          curl --fail --silent --show-error "$STAGING_URL/health" | jq -e '.status == "healthy"'
+          curl --fail --silent --show-error "$STAGING_URL/tenapp/readyz" | jq -e '.status == "ready"'
+          curl --fail --silent --show-error "$STAGING_URL/api/calls" | jq -e '.success == true'
+          curl --fail --silent --show-error \
+            -X POST "$STAGING_URL/demo/kb/seed" \
+            -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+            | jq -e '.ok == true and .upserted > 0'
+          curl --fail --silent --show-error \
+            "$STAGING_URL/demo/kb/query?q=shipping%20below%20500&top_k=3" \
+            | jq -e '.results | length > 0'
+
+          smoke_call="staging-smoke-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          payload="$(jq -n --arg call_id "$smoke_call" '{call_id:$call_id,caller:"staging",role:"tool",content:"staging idempotency smoke",sequence:1,source_timestamp_ms:1,turn_id:0,idempotency_key:($call_id + ":1")}')"
+          for ignored in 1 2; do
+            curl --fail --silent --show-error \
+              -X POST "$STAGING_URL/demo/transcripts" \
+              -H "Content-Type: application/json" \
+              -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+              --data "$payload" >/dev/null
+          done
+          curl --fail --silent --show-error "$STAGING_URL/demo/transcripts?call_id=$smoke_call" \
+            | jq -e '.messages | length == 1'
+
+      - name: Publish staging URL
+        run: echo "### Staging deployment\n$STAGING_URL" >> "$GITHUB_STEP_SUMMARY"
