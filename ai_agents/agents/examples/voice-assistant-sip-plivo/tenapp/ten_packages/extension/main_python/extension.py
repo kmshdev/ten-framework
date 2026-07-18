@@ -142,6 +142,7 @@ class MainControlExtension(AsyncExtension):
         self.audio_dump_dir: str = ""
 
         self.stopped: bool = False
+        self.runtime_ready: bool = False
         self.sentence_fragment: str = ""
         self.turn_id: int = 0
         self.session_id: str = ""
@@ -153,6 +154,16 @@ class MainControlExtension(AsyncExtension):
         # Keyed by call UUID so each call logs only the first few audio chunks
         # plus state transitions, avoiding noisy per-frame logs.
         self._plivo_audio_stats: Dict[str, Dict[str, Any]] = {}
+
+    def is_ready(self) -> bool:
+        return bool(
+            self.runtime_ready
+            and not self.stopped
+            and self.agent
+            and self.memory
+            and self.server_task
+            and not self.server_task.done()
+        )
 
     def _current_metadata(self) -> dict:
         return {
@@ -425,6 +436,7 @@ class MainControlExtension(AsyncExtension):
 
     async def on_start(self, ten_env: AsyncTenEnv):
         ten_env.log_info("[MainControlExtension] on_start")
+        self.runtime_ready = True
 
         # Initialize WebSocket and audio processing
         if self.config:
@@ -438,6 +450,7 @@ class MainControlExtension(AsyncExtension):
     async def on_stop(self, ten_env: AsyncTenEnv):
         ten_env.log_info("[MainControlExtension] on_stop")
         self.stopped = True
+        self.runtime_ready = False
 
         # End all active calls and cleanup
         for call_uuid in list(self.server_instance.active_call_sessions.keys()):

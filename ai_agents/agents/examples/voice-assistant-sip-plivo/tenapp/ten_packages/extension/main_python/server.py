@@ -545,15 +545,42 @@ class PlivoCallServer:
                 self._log_error(f"Failed to handle status webhook: {str(e)}")
                 raise HTTPException(status_code=500, detail={"code": "status_webhook_failed"}) from e
 
-        @self.app.get("/health")
-        async def health_check():
-            """Health check endpoint"""
+        @self.app.get("/livez")
+        async def liveness_check():
             return JSONResponse(
                 content={
-                    "status": "healthy",
-                    "active_calls": len(self.active_call_sessions),
+                    "status": "alive",
                     "server_time": datetime.now().isoformat(),
                 }
+            )
+
+        @self.app.get("/readyz")
+        async def readiness_check():
+            extension = getattr(self, "extension_instance", None)
+            ready = bool(extension and extension.is_ready())
+            return JSONResponse(
+                status_code=200 if ready else 503,
+                content={
+                    "status": "ready" if ready else "starting",
+                    "active_calls": len(self.active_call_sessions),
+                    "server_time": datetime.now().isoformat(),
+                },
+                headers={} if ready else {"Retry-After": "2"},
+            )
+
+        @self.app.get("/health")
+        async def health_check():
+            """Compatibility health endpoint with semantic readiness state."""
+            extension = getattr(self, "extension_instance", None)
+            ready = bool(extension and extension.is_ready())
+            return JSONResponse(
+                status_code=200 if ready else 503,
+                content={
+                    "status": "healthy" if ready else "starting",
+                    "active_calls": len(self.active_call_sessions),
+                    "server_time": datetime.now().isoformat(),
+                },
+                headers={} if ready else {"Retry-After": "2"},
             )
 
         @self.app.get("/api/config")

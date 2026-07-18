@@ -33,6 +33,7 @@ export class SuperYouAgent extends Container<Env> {
   sleepAfter = "2h";
   enableInternet = true;
   private ready = false;
+  private lastReadyCheck = 0;
 
   constructor(ctx: ConstructorParameters<typeof Container>[0], env: Env) {
     super(ctx, env);
@@ -65,23 +66,41 @@ export class SuperYouAgent extends Container<Env> {
   // request boots a fresh instance (new image + secrets, clean state).
   async destroyContainer(): Promise<void> {
     this.ready = false;
+    this.lastReadyCheck = 0;
     await this.destroy();
   }
 
   override onStop(): void {
     this.ready = false;
+    this.lastReadyCheck = 0;
   }
 
   override onError(error: unknown): void {
     this.ready = false;
+    this.lastReadyCheck = 0;
     console.error("SuperYou container error", error);
+    throw error;
   }
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    await this.ensureReady();
+    try {
+      await this.ensureReady();
+    } catch (error) {
+      console.error("SuperYou application is not ready", error);
+      return Response.json(
+        {
+          error: "service_starting",
+          message: "The voice service is starting. Please retry shortly.",
+        },
+        {
+          status: 503,
+          headers: { "Retry-After": "2" },
+        },
+      );
+    }
 
     // Plivo media WebSocket -> tenapp (9000). MUST go through fetch()
     // (containerFetch does not support WebSocket upgrades).
@@ -121,20 +140,42 @@ export class SuperYouAgent extends Container<Env> {
   }
 
   private async ensureReady(): Promise<void> {
-    if (this.ready) return;
+    const now = Date.now();
+    if (this.ready && now - this.lastReadyCheck < 5_000) return;
 
-    // A Promise created by one Durable Object request must not be reused from
-    // another request context. Serialize cold-start initialization through the
-    // DO concurrency gate instead, then expose the instance only after every
-    // required port is listening.
     await this.ctx.blockConcurrencyWhile(async () => {
-      if (this.ready) return;
+      const checkTime = Date.now();
+      if (this.ready && checkTime - this.lastReadyCheck < 5_000) return;
+
       await this.startAndWaitForPorts({
         ports: this.requiredPorts,
         cancellationOptions: { portReadyTimeoutMS: 120_000 },
       });
+      await this.waitForApplicationReady();
       this.ready = true;
+      this.lastReadyCheck = Date.now();
     });
+  }
+
+  private async waitForApplicationReady(): Promise<void> {
+    let lastStatus = 0;
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      try {
+        const response = await this.containerFetch(
+          "http://container/readyz",
+          {},
+          9000,
+        );
+        lastStatus = response.status;
+        if (response.ok) return;
+      } catch {
+        lastStatus = 0;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+    this.ready = false;
+    this.lastReadyCheck = 0;
+    throw new Error(`semantic readiness failed (last status ${lastStatus})`);
   }
 
   // The tenapp (9000) is spawned by the launcher and loads the TEN runtime +
