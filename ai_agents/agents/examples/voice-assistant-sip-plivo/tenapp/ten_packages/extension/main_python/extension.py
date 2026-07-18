@@ -230,12 +230,11 @@ class MainControlExtension(AsyncExtension):
         # Load config from runtime properties
         config_json, _ = await ten_env.get_property_to_json(None)
 
-        self.ten_env.log_info(f"Config12: {config_json}")
-
         self.config = MainControlConfig.model_validate_json(config_json)
         self.mode = self.config.mode
-
-        self.ten_env.log_info(f"Config11: {self.config}")
+        self.ten_env.log_info(
+            f"Main control configured in {self.mode} mode"
+        )
 
         if self.mode == "coordinator":
             await self._start_server()
