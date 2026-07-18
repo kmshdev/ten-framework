@@ -24,6 +24,7 @@ from .call_state import (
     CallCapacityError,
     CallRegistry,
 )
+from .graph_probe import resolve_graph_probe
 from .config import MainControlConfig
 
 
@@ -554,13 +555,18 @@ class PlivoCallServer:
                 raise HTTPException(status_code=503, detail="coordinator unavailable")
             try:
                 full = request.query_params.get("full") == "true"
-                graph_id = await extension.graph_smoke_test(full=full)
+                probe, graph_name = resolve_graph_probe(
+                    request.query_params.get("graph"), full=full
+                )
+                graph_id = await extension.graph_smoke_test(graph_name=graph_name)
                 return JSONResponse(
                     content={
                         "ok": True,
                         "graph_id": graph_id,
                         "stopped": True,
-                        "full": full,
+                        "full": probe == "full",
+                        "probe": probe,
+                        "graph_name": graph_name,
                     }
                 )
             except Exception as exc:

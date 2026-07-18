@@ -359,6 +359,105 @@
         }
       },
       {
+        "name": "graph_probe_worker",
+        "auto_start": false,
+        "singleton": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "main_control",
+              "addon": "main_python",
+              "extension_group": "control",
+              "property": {
+                "mode": "worker",
+                "coordinator_graph_id": "plivo_coordinator",
+                "plivo_auth_id": "${env:PLIVO_AUTH_ID}",
+                "plivo_auth_token": "${env:PLIVO_AUTH_TOKEN}",
+                "plivo_from_number": "${env:PLIVO_FROM_NUMBER}",
+                "plivo_server_port": 9000,
+                "plivo_public_server_url": "${env:PLIVO_PUBLIC_SERVER_URL}",
+                "plivo_use_https": true,
+                "plivo_use_wss": true
+              }
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
+        "name": "graph_probe_asr",
+        "auto_start": false,
+        "singleton": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "stt",
+              "addon": "sarvam_asr_python",
+              "extension_group": "stt",
+              "property": {
+                "params": {
+                  "api_key": "${env:SARVAM_API_KEY}",
+                  "model": "saaras:v3",
+                  "mode": "codemix",
+                  "language": "unknown",
+                  "sample_rate": 8000
+                }
+              }
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
+        "name": "graph_probe_llm",
+        "auto_start": false,
+        "singleton": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "llm",
+              "addon": "openai_llm2_python",
+              "extension_group": "chatgpt",
+              "property": {
+                "base_url": "https://api.openai.com/v1",
+                "api_key": "${env:OPENAI_API_KEY}",
+                "model": "${env:OPENAI_MODEL|gpt-4o-mini}"
+              }
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
+        "name": "graph_probe_tts",
+        "auto_start": false,
+        "singleton": false,
+        "graph": {
+          "nodes": [
+            {
+              "type": "extension",
+              "name": "tts",
+              "addon": "elevenlabs_tts2_python",
+              "extension_group": "tts",
+              "property": {
+                "params": {
+                  "key": "${env:ELEVENLABS_TTS_KEY}",
+                  "model_id": "eleven_flash_v2_5",
+                  "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
+                  "output_format": "pcm_16000"
+                },
+                "dump_path": "./",
+                "dump": false
+              }
+            }
+          ],
+          "connections": []
+        }
+      },
+      {
         "name": "plivo_coordinator",
         "auto_start": true,
         "singleton": true,
