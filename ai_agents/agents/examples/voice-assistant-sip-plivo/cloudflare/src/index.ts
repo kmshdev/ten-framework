@@ -67,7 +67,14 @@ export class SuperYouAgent extends Container<Env> {
   async destroyContainer(): Promise<void> {
     this.ready = false;
     this.lastReadyCheck = 0;
-    await this.destroy();
+    try {
+      await this.destroy();
+    } catch (error) {
+      // Restart is idempotent: an already-crashed or absent container is
+      // already in the desired stopped state. The next request will start the
+      // image currently attached to this Worker version.
+      console.warn("Container was already absent during restart", error);
+    }
   }
 
   override onStop(): void {
