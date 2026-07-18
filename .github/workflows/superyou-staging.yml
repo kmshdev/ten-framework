@@ -114,6 +114,15 @@ jobs:
         working-directory: ai_agents/agents/examples/voice-assistant-sip-plivo/cloudflare
         run: npx wrangler d1 execute "$D1_NAME" --remote --file seed.sql --config .generated/wrangler.staging.json
 
+      - name: Stop previous staging container
+        env:
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "https://superyou-voice-agent-staging.gateway-worker-ai.workers.dev/admin/restart" \
+            -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+            | jq -e '.restarted == true'
+
       - name: Deploy staging Worker and Container
         id: deploy
         working-directory: ai_agents/agents/examples/voice-assistant-sip-plivo/cloudflare

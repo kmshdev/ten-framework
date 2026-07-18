@@ -24,10 +24,11 @@ interface Env {
 
 const EMBEDDING_MODEL = "@cf/baai/bge-m3";
 
-function containerInstanceName(env: Env): string {
-  return env.DEPLOY_REVISION
-    ? `superyou-demo-${env.DEPLOY_REVISION}`
-    : "superyou-demo";
+function containerInstanceName(_env: Env): string {
+  // Keep one stable identity per Worker deployment. The staging workflow stops
+  // this instance before deploying a new image, preventing an old revision from
+  // occupying the account's single container slot under a revisioned DO name.
+  return "superyou-demo";
 }
 
 export class SuperYouAgent extends Container<Env> {
