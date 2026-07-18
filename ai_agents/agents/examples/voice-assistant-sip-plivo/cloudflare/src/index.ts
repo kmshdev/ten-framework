@@ -19,9 +19,16 @@ interface Env {
   MEM0_API_KEY?: string;
   HUMAN_AGENT_NUMBER?: string;
   WEATHERAPI_API_KEY?: string;
+  DEPLOY_REVISION?: string;
 }
 
 const EMBEDDING_MODEL = "@cf/baai/bge-m3";
+
+function containerInstanceName(env: Env): string {
+  return env.DEPLOY_REVISION
+    ? `superyou-demo-${env.DEPLOY_REVISION}`
+    : "superyou-demo";
+}
 
 export class SuperYouAgent extends Container<Env> {
   // Plivo media WebSocket lives on 9000; super.fetch() proxies WS here.
@@ -486,14 +493,18 @@ export default {
       if (request.headers.get("x-admin-token") !== env.PLIVO_AUTH_TOKEN) {
         return json({ error: "unauthorized" }, 401);
       }
-      const instance = env.SUPERYOU_AGENT.getByName("superyou-demo");
+      const instance = env.SUPERYOU_AGENT.getByName(
+        containerInstanceName(env),
+      );
       await instance.destroyContainer();
       return json({ restarted: true });
     }
 
     // Single demo instance: Plivo webhooks, media WS, and the dashboard
     // must all land on the same container.
-    const container = env.SUPERYOU_AGENT.getByName("superyou-demo");
+    const container = env.SUPERYOU_AGENT.getByName(
+      containerInstanceName(env),
+    );
     return container.fetch(request);
   },
 } satisfies ExportedHandler<Env>;

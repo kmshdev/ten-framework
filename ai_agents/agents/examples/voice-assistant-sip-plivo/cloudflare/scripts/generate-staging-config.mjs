@@ -11,6 +11,8 @@ if (!image || !databaseId) {
   process.exit(1);
 }
 
+const deployRevision = image.slice(image.lastIndexOf(":") + 1).slice(0, 16);
+
 const config = {
   $schema: "../node_modules/wrangler/config-schema.json",
   name: "superyou-voice-agent-staging",
@@ -18,6 +20,7 @@ const config = {
   compatibility_date: "2026-06-01",
   workers_dev: true,
   observability: { enabled: true },
+  vars: { DEPLOY_REVISION: deployRevision },
   containers: [
     {
       class_name: "SuperYouAgent",
