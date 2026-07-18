@@ -23,6 +23,7 @@ from ten_ai_base import ModuleType
 from ten_ai_base.const import LOG_CATEGORY_VENDOR
 from ten_runtime import AsyncTenEnv
 from .config import ElevenLabsTTS2Config
+from .shutdown import cancel_and_wait, run_with_deadline
 import time
 
 
@@ -469,15 +470,20 @@ class ElevenLabsTTS2Synthesizer:
 
         # Cancel websocket task
         if self.websocket_task:
-            self.websocket_task.cancel()
-            try:
-                await self.websocket_task
-            except asyncio.CancelledError:
-                pass
+            stopped = await cancel_and_wait(self.websocket_task, timeout=3.0)
+            if not stopped:
+                self.ten_env.log_warn(
+                    "ElevenLabs websocket task exceeded shutdown deadline"
+                )
 
-        # Close websocket connection
+        # WebSocket close handshakes can also stall during network failure. The
+        # graph lifecycle must remain bounded even when vendor teardown does not.
         if self.ws:
-            await self.ws.close()
+            closed = await run_with_deadline(self.ws.close(), timeout=3.0)
+            if not closed:
+                self.ten_env.log_warn(
+                    "ElevenLabs websocket close exceeded shutdown deadline"
+                )
             self.ws = None
         self.response_msgs = None
 
@@ -571,11 +577,11 @@ class ElevenLabsTTS2Client:
 
         # Cancel cleanup task
         if self.cleanup_task:
-            self.cleanup_task.cancel()
-            try:
-                await self.cleanup_task
-            except asyncio.CancelledError:
-                pass
+            stopped = await cancel_and_wait(self.cleanup_task, timeout=3.0)
+            if not stopped:
+                self.ten_env.log_warn(
+                    "ElevenLabs cleanup task exceeded shutdown deadline"
+                )
 
         # Close current synthesizer
         if self.synthesizer:
