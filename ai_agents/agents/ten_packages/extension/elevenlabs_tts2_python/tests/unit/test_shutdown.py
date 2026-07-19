@@ -16,6 +16,13 @@ SPEC.loader.exec_module(SHUTDOWN)
 
 
 class ShutdownTests(unittest.IsolatedAsyncioTestCase):
+    def test_sample_rate_is_safe_before_initialization(self):
+        self.assertEqual(SHUTDOWN.sample_rate_or_default(None), 16000)
+
+    def test_sample_rate_uses_initialized_config(self):
+        config = type("Config", (), {"sample_rate": 24000})()
+        self.assertEqual(SHUTDOWN.sample_rate_or_default(config), 24000)
+
     async def test_cancelled_task_finishes_within_deadline(self):
         task = asyncio.create_task(asyncio.sleep(60))
 

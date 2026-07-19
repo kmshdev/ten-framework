@@ -3,6 +3,13 @@
 import asyncio
 
 
+def sample_rate_or_default(config, default: int = 16000) -> int:
+    """Return a valid rate even when shutdown races extension initialization."""
+    if config is None:
+        return default
+    return int(getattr(config, "sample_rate", default))
+
+
 async def cancel_and_wait(task: asyncio.Task | None, timeout: float) -> bool:
     """Cancel a task without allowing resistant cleanup to block shutdown.
 

@@ -20,6 +20,7 @@ from ten_ai_base.message import (
 from ten_ai_base.struct import TTSTextInput
 from ten_ai_base.tts2 import AsyncTTS2BaseExtension, RequestState
 from .elevenlabs_tts import ElevenLabsTTS2Client, ElevenLabsTTS2Config
+from .shutdown import sample_rate_or_default
 from ten_runtime import (
     AsyncTenEnv,
 )
@@ -185,7 +186,7 @@ class ElevenLabsTTS2Extension(AsyncTTS2BaseExtension):
         return "elevenlabs"
 
     def synthesize_audio_sample_rate(self) -> int:
-        return self.config.sample_rate
+        return sample_rate_or_default(self.config)
 
     def synthesize_audio_channels(self) -> int:
         return 1
