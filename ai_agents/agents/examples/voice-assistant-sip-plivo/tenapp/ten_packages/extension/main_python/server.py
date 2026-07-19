@@ -789,11 +789,7 @@ class PlivoCallServer:
                                 hasattr(self, "extension_instance")
                                 and self.extension_instance
                             ):
-                                task = asyncio.create_task(
-                                    initialize_media_session(call_uuid)
-                                )
-                                self.media_init_tasks.add(task)
-                                task.add_done_callback(self.media_init_tasks.discard)
+                                await initialize_media_session(call_uuid)
                         elif message.get("event") == "stop":
                             self._log_info(f"Media stream stopped: {message}")
                             self._record_media_debug("stop_received")
