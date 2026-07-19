@@ -321,6 +321,15 @@ class MainControlExtension(AsyncExtension):
         if error:
             raise RuntimeError(f"failed to stop graph {graph_id}: {error}")
 
+    def _record_worker_debug(self, event: str, **fields: str) -> None:
+        """Persist worker startup failures for the coordinator diagnostics route."""
+        record = {"at": datetime.now().isoformat(), "event": event, **fields}
+        try:
+            with open("/tmp/plivo_media_debug.jsonl", "a", encoding="utf-8") as trace:
+                trace.write(json.dumps(record) + "\n")
+        except OSError:
+            pass
+
     async def graph_smoke_test(self, graph_name: str) -> str:
         graph_id = await self._start_call_graph(graph_name=graph_name)
         await self._stop_call_graph(graph_id)
@@ -510,7 +519,15 @@ class MainControlExtension(AsyncExtension):
     async def on_data(self, ten_env: AsyncTenEnv, data: Data):
         if data.get_name() == "call_start" and self.mode == "worker":
             payload_json, _ = data.get_property_to_json(None)
-            await self._initialize_call_worker(json.loads(payload_json or "{}"))
+            try:
+                await self._initialize_call_worker(json.loads(payload_json or "{}"))
+            except Exception as error:
+                self.ten_env.log_error(f"Call worker initialization failed: {error}")
+                self._record_worker_debug(
+                    "worker_initialization_error",
+                    error_type=type(error).__name__,
+                    error=str(error),
+                )
             return
         if data.get_name() == "clear_playback" and self.mode == "coordinator":
             payload_json, _ = data.get_property_to_json(None)
