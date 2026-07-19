@@ -192,17 +192,28 @@ class PlivoServer:
             finally:
                 self.tenapp_process = None
 
+    def _tenapp_is_running(self) -> bool:
+        return bool(
+            self.tenapp_process
+            and self.tenapp_process.poll() is None
+            and not self.shutdown_event.is_set()
+        )
+
     def _setup_routes(self):
         """Setup FastAPI routes for configuration and health check"""
 
         @self.app.get("/health")
         async def health_check():
-            """Health check endpoint"""
+            """Report launcher health only while its required TEN child is live."""
+            healthy = self._tenapp_is_running()
             return JSONResponse(
+                status_code=200 if healthy else 503,
                 content={
-                    "status": "healthy",
+                    "status": "healthy" if healthy else "unhealthy",
+                    "tenapp_running": healthy,
                     "server_time": datetime.now().isoformat(),
-                }
+                },
+                headers={} if healthy else {"Retry-After": "2"},
             )
 
         @self.app.get("/api/config")
