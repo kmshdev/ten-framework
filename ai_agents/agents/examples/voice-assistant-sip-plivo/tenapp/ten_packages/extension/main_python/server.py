@@ -704,21 +704,16 @@ class PlivoCallServer:
         @self.app.websocket("/media")
         async def websocket_endpoint(websocket: WebSocket):
             """WebSocket endpoint for Plivo media streaming"""
-            self._log_info(f"WebSocket connection attempt from: {websocket.client}")
-            self._record_media_debug("connection_attempt")
-
             try:
-                # Log connection attempt
-                self._log_info(f"WebSocket connection attempt from: {websocket.client}")
+                # Accept the connection immediately
+                await websocket.accept()
+                self._record_media_debug("connection_attempt")
+                self._log_info(f"WebSocket connection established: {websocket.client}")
+                self._record_media_debug("connection_accepted")
 
                 # Check for required query parameters (Plivo sends these)
                 query_params = websocket.query_params
                 self._log_info(f"WebSocket query parameters: {dict(query_params)}")
-
-                # Accept the connection immediately
-                await websocket.accept()
-                self._log_info(f"WebSocket connection established: {websocket.client}")
-                self._record_media_debug("connection_accepted")
 
                 # Do not send arbitrary server->Plivo messages here. Plivo's
                 # bidirectional stream protocol only documents playAudio,
