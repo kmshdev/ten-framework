@@ -17,6 +17,14 @@ CallRegistry = CALL_STATE.CallRegistry
 CallStatus = CALL_STATE.CallStatus
 
 
+class RecordingWebSocket:
+    def __init__(self):
+        self.messages = []
+
+    async def send_text(self, payload):
+        self.messages.append(payload)
+
+
 class CallRegistryTests(unittest.IsolatedAsyncioTestCase):
     async def test_concurrent_reservations_are_atomic(self):
         registry = CallRegistry(capacity=1)
@@ -83,6 +91,37 @@ class CallRegistryTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(registry["call-1"].graph_id, "graph-1")
         self.assertEqual(registry["call-2"].graph_id, "graph-2")
+
+    async def test_two_call_media_and_barge_in_are_isolated(self):
+        registry = CallRegistry(capacity=2)
+        first_socket = RecordingWebSocket()
+        second_socket = RecordingWebSocket()
+        await registry.mark_streaming("call-1", "stream-1", first_socket)
+        await registry.mark_streaming("call-2", "stream-2", second_socket)
+
+        await registry.send_text("call-1", "audio-a")
+        await registry.send_text("call-2", "audio-b")
+        await registry.send_text("call-1", "clear-a")
+
+        self.assertEqual(first_socket.messages, ["audio-a", "clear-a"])
+        self.assertEqual(second_socket.messages, ["audio-b"])
+
+    async def test_ending_one_call_preserves_other_and_discards_late_frames(self):
+        registry = CallRegistry(capacity=2)
+        first_socket = RecordingWebSocket()
+        second_socket = RecordingWebSocket()
+        await registry.mark_streaming("call-1", "stream-1", first_socket)
+        await registry.mark_streaming("call-2", "stream-2", second_socket)
+
+        await registry.terminate("call-1", "synthetic:end")
+        late_sent = await registry.send_text("call-1", "late-a")
+        second_sent = await registry.send_text("call-2", "audio-b")
+
+        self.assertFalse(late_sent)
+        self.assertTrue(second_sent)
+        self.assertEqual(first_socket.messages, [])
+        self.assertEqual(second_socket.messages, ["audio-b"])
+        self.assertEqual(registry["call-2"].status, CallStatus.STREAMING)
 
     async def test_websocket_detach_only_affects_owner(self):
         registry = CallRegistry(capacity=2)

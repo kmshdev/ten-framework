@@ -646,12 +646,13 @@ class MainControlExtension(AsyncExtension):
 
     async def _clear_call_playback(self, call_uuid: str) -> None:
         session = self.server_instance.active_call_sessions.get(call_uuid)
-        if not session or not session.websocket:
+        if not session:
             return
-        await session.websocket.send_text(
+        await self.server_instance.active_call_sessions.send_text(
+            call_uuid,
             json.dumps(
                 {"event": "clearAudio", "streamId": session.stream_id or ""}
-            )
+            ),
         )
 
     # WebSocket and audio processing methods
@@ -892,7 +893,11 @@ class MainControlExtension(AsyncExtension):
                     ),
                 )
 
-            await websocket.send_text(json.dumps(message))
+            sent = await self.server_instance.active_call_sessions.send_text(
+                call_uuid, json.dumps(message)
+            )
+            if not sent:
+                return
 
             stats["chunks"] = next_chunk
             stats["bytes"] = int(stats.get("bytes", 0)) + len(audio_data)
@@ -908,14 +913,15 @@ class MainControlExtension(AsyncExtension):
 
             if stream_id and stats["chunks"] in (1, 3):
                 checkpoint_name = f"{call_uuid}:chunk-{stats['chunks']}"
-                await websocket.send_text(
+                await self.server_instance.active_call_sessions.send_text(
+                    call_uuid,
                     json.dumps(
                         {
                             "event": "checkpoint",
                             "streamId": stream_id,
                             "name": checkpoint_name,
                         }
-                    )
+                    ),
                 )
                 stats.setdefault("checkpoints_sent", []).append(checkpoint_name)
                 if self.memory and self.memory.call_uuid == call_uuid:

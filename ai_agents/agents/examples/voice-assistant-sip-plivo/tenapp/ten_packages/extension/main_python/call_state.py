@@ -198,6 +198,15 @@ class CallRegistry(MutableMapping[str, CallSession]):
                     return key
         return None
 
+    async def send_text(self, call_uuid: str, payload: str) -> bool:
+        """Deliver to one live call, serialized against terminalization."""
+        async with self._lock:
+            session = self._sessions.get(call_uuid)
+            if session is None or session.is_terminal or session.websocket is None:
+                return False
+            await session.websocket.send_text(payload)
+            return True
+
     async def terminate(self, call_uuid: str, reason: str) -> tuple[CallSession | None, bool]:
         """Mark a call terminal once; returns `(session, transitioned)`."""
         async with self._lock:
