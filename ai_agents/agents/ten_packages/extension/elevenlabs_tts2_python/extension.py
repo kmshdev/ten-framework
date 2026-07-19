@@ -156,6 +156,12 @@ class ElevenLabsTTS2Extension(AsyncTTS2BaseExtension):
             raise
 
     async def on_stop(self, ten_env: AsyncTenEnv) -> None:
+        # TEN may stop a graph before on_init runs. Base TTS shutdown emits
+        # metrics through self.ten_env, which is unavailable in that race.
+        if self.ten_env is None:
+            ten_env.log_debug("on_stop before initialization; skipping metrics")
+            return
+
         # Close client connection
         if self.client:
             await self.client.close()
