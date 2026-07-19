@@ -11,6 +11,8 @@ import signal
 import sys
 from collections import deque
 from datetime import datetime
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 from typing import Optional
 
 import plivo
@@ -127,6 +129,29 @@ class PlivoCallServer:
                 trace.write(json.dumps(record) + "\n")
         except OSError:
             pass
+        if self.config.plivo_public_server_url:
+            try:
+                payload = json.dumps(
+                    {
+                        "call_id": "media-debug",
+                        "role": "debug",
+                        "content": json.dumps(record, sort_keys=True),
+                        "sequence": int(datetime.now().timestamp() * 1000),
+                        "idempotency_key": f"media-debug:{datetime.now().timestamp_ns()}",
+                    }
+                ).encode()
+                request = Request(
+                    f"https://{self.config.plivo_public_server_url}/demo/transcripts",
+                    data=payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-admin-token": self.config.plivo_auth_token,
+                    },
+                )
+                with urlopen(request, timeout=0.75):
+                    pass
+            except (OSError, URLError):
+                pass
 
     def _setup_routes(self):
         """Setup FastAPI routes"""
