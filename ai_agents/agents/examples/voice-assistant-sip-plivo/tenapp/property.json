@@ -459,7 +459,7 @@
       },
       {
         "name": "plivo_coordinator",
-        "auto_start": true,
+        "auto_start": false,
         "singleton": true,
         "graph": {
           "nodes": [
@@ -487,7 +487,7 @@
       },
       {
         "name": "va_in_hybrid_stack",
-        "auto_start": false,
+        "auto_start": true,
         "singleton": false,
         "graph": {
           "nodes": [

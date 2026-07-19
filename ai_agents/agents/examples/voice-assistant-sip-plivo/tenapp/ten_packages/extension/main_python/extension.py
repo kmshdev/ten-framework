@@ -262,6 +262,11 @@ class MainControlExtension(AsyncExtension):
             if event_type:
                 self.agent.on(event_type, fn)
 
+        # Keep the media server and the voice graph in one long-lived TEN
+        # process. The Plivo session registry already limits this demo to one
+        # active call, so a per-call graph is unnecessary here.
+        await self._start_server()
+
     async def _start_server(self):
         """Start the Plivo call server in the same process"""
         try:
@@ -544,20 +549,10 @@ class MainControlExtension(AsyncExtension):
         try:
             if audio_frame.get_name() != "pcm_frame":
                 return
-            if self.mode == "worker":
-                if not self.call_uuid:
-                    ten_env.log_error("Dropping TTS frame before call_start")
-                    return
-                audio_frame.set_property_string("call_uuid", self.call_uuid)
-                audio_frame.set_dests(
-                    [Loc("", self.config.coordinator_graph_id, "main_control")]
-                )
-                await ten_env.send_audio_frame(audio_frame)
-                return
-
             call_uuid, _ = audio_frame.get_property_string("call_uuid")
+            call_uuid = call_uuid or self.call_uuid
             if not call_uuid:
-                ten_env.log_error("Dropping unowned TTS frame at coordinator")
+                ten_env.log_error("Dropping TTS frame without an active call")
                 return
             await self.send_audio_to_plivo(audio_frame.get_buf(), call_uuid)
         except Exception as e:
@@ -1013,9 +1008,8 @@ class MainControlExtension(AsyncExtension):
         await self._end_call_and_cleanup(call_uuid)
 
     async def on_websocket_connected(self, call_uuid: str):
-        """Start and initialize the isolated TEN graph for this call."""
+        """Initialize the active call and queue its greeting."""
         session = self.server_instance.active_call_sessions[call_uuid]
-        graph_id = await self._start_call_graph(call_uuid)
         payload = {
             "call_uuid": call_uuid,
             "stream_id": session.stream_id,
@@ -1025,16 +1019,7 @@ class MainControlExtension(AsyncExtension):
             "opening_message": session.opening_message or "",
             "campaign_context": session.campaign_context or "",
         }
-        data = Data.create("call_start")
-        data.set_property_from_json(None, json.dumps(payload))
-        data.set_dests([Loc("", graph_id, "main_control")])
-        error = await self.ten_env.send_data(data)
-        if error:
-            await self._stop_call_graph(graph_id)
-            raise RuntimeError(f"failed to initialize call graph: {error}")
-        self.ten_env.log_info(
-            f"Started isolated graph {graph_id} for call {call_uuid}"
-        )
+        await self._initialize_call_worker(payload)
 
     async def _initialize_call_worker(self, payload: dict):
         self.call_uuid = str(payload.get("call_uuid", ""))
