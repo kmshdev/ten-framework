@@ -38,6 +38,10 @@ const nextConfig = {
         destination: "http://127.0.0.1:9000/media",
       },
       {
+        source: "/livez",
+        destination: "http://127.0.0.1:9000/livez",
+      },
+      {
         source: "/health",
         destination: "http://127.0.0.1:9000/health",
       },
