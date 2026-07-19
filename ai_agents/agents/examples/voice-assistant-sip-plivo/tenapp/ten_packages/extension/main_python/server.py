@@ -710,7 +710,8 @@ class PlivoCallServer:
                     try:
                         message = json.loads(data)
                         self._record_media_debug(
-                            "event_received", event=str(message.get("event", ""))
+                            "event_received",
+                            message_event=str(message.get("event", "")),
                         )
 
                         if message.get("event") == "media":
