@@ -76,35 +76,8 @@ npx wrangler secret bulk "$SECRETS_FILE"
 
 # --- 4. Warm up the container ----------------------------------------------
 log "Warming up the container (cold start + tenapp boot can take ~1-2 minutes)"
-launcher_ready=false
-for i in $(seq 1 24); do
-  if curl -sf --max-time 10 "$WORKER_URL/health" >/dev/null 2>&1; then
-    echo "launcher is healthy"
-    launcher_ready=true
-    break
-  fi
-  echo "  waiting for container... ($i/24)"
-  sleep 5
-done
-if [ "$launcher_ready" != true ]; then
-  echo "ERROR: launcher did not become healthy" >&2
-  exit 1
-fi
-
-application_ready=false
-for i in $(seq 1 24); do
-  if curl -sf --max-time 10 "$WORKER_URL/tenapp/readyz" >/dev/null 2>&1; then
-    echo "tenapp application is ready"
-    application_ready=true
-    break
-  fi
-  echo "  waiting for tenapp readiness... ($i/24)"
-  sleep 5
-done
-if [ "$application_ready" != true ]; then
-  echo "ERROR: tenapp did not become ready" >&2
-  exit 1
-fi
+"$SCRIPT_DIR/wait-for-readiness.sh" "$WORKER_URL/health" "launcher"
+"$SCRIPT_DIR/wait-for-readiness.sh" "$WORKER_URL/tenapp/readyz" "tenapp application"
 
 # --- 5. Summary --------------------------------------------------------------
 FROM_NUMBER="$(read_env PLIVO_FROM_NUMBER)"
