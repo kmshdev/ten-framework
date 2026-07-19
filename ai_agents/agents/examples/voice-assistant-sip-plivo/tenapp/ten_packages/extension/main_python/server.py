@@ -64,6 +64,7 @@ class PlivoCallServer:
         # is migrated to per-call TEN graphs.
         self.active_call_sessions = CallRegistry(capacity=1)
         self.media_debug_events = deque(maxlen=100)
+        self.media_debug_path = "/tmp/plivo_media_debug.jsonl"
 
         # Setup routes
         self._setup_routes()
@@ -119,13 +120,13 @@ class PlivoCallServer:
 
     def _record_media_debug(self, event: str, **fields: str) -> None:
         """Keep a bounded trace for diagnosing provider media handshakes."""
-        self.media_debug_events.append(
-            {
-                "at": datetime.now().isoformat(),
-                "event": event,
-                **fields,
-            }
-        )
+        record = {"at": datetime.now().isoformat(), "event": event, **fields}
+        self.media_debug_events.append(record)
+        try:
+            with open(self.media_debug_path, "a", encoding="utf-8") as trace:
+                trace.write(json.dumps(record) + "\n")
+        except OSError:
+            pass
 
     def _setup_routes(self):
         """Setup FastAPI routes"""
@@ -670,7 +671,13 @@ class PlivoCallServer:
             """Return the bounded media handshake trace for operators."""
             if request.headers.get("x-admin-token") != self.config.plivo_auth_token:
                 raise HTTPException(status_code=401, detail="unauthorized")
-            return JSONResponse(content={"events": list(self.media_debug_events)})
+            events = list(self.media_debug_events)
+            try:
+                with open(self.media_debug_path, encoding="utf-8") as trace:
+                    events = [json.loads(line) for line in trace if line.strip()][-100:]
+            except (OSError, json.JSONDecodeError):
+                pass
+            return JSONResponse(content={"events": events})
 
         # WebSocket endpoint for media streaming
         @self.app.websocket("/media")
