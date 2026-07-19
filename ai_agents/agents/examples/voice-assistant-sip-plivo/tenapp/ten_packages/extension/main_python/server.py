@@ -67,6 +67,7 @@ class PlivoCallServer:
         self.active_call_sessions = CallRegistry(capacity=1)
         self.media_debug_events = deque(maxlen=100)
         self.media_debug_path = "/tmp/plivo_media_debug.jsonl"
+        self.media_init_tasks: set[asyncio.Task] = set()
 
         # Setup routes
         self._setup_routes()
@@ -155,6 +156,26 @@ class PlivoCallServer:
 
     def _setup_routes(self):
         """Setup FastAPI routes"""
+
+        async def initialize_media_session(call_uuid: str):
+            """Initialize TEN without blocking the provider media receive loop."""
+            extension = getattr(self, "extension_instance", None)
+            if not extension:
+                return
+            self._record_media_debug("initialization_started")
+            try:
+                await extension.on_websocket_connected(call_uuid)
+            except Exception as error:
+                self._log_error(
+                    f"Media initialization failed for {call_uuid}: {error}"
+                )
+                self._record_media_debug(
+                    "initialization_error",
+                    error_type=type(error).__name__,
+                    error=str(error),
+                )
+            else:
+                self._record_media_debug("initialization_finished")
 
         @self.app.post("/api/call")
         async def create_call(request: Request):
@@ -798,11 +819,11 @@ class PlivoCallServer:
                                 hasattr(self, "extension_instance")
                                 and self.extension_instance
                             ):
-                                self._record_media_debug("initialization_started")
-                                await self.extension_instance.on_websocket_connected(
-                                    call_uuid
+                                task = asyncio.create_task(
+                                    initialize_media_session(call_uuid)
                                 )
-                                self._record_media_debug("initialization_finished")
+                                self.media_init_tasks.add(task)
+                                task.add_done_callback(self.media_init_tasks.discard)
                         elif message.get("event") == "stop":
                             self._log_info(f"Media stream stopped: {message}")
                             self._record_media_debug("stop_received")
