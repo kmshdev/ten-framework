@@ -9,6 +9,7 @@ import json
 import os
 import signal
 import sys
+from collections import deque
 from datetime import datetime
 from typing import Optional
 
@@ -62,6 +63,7 @@ class PlivoCallServer:
         # reservations. It remains mapping-compatible while the media pipeline
         # is migrated to per-call TEN graphs.
         self.active_call_sessions = CallRegistry(capacity=1)
+        self.media_debug_events = deque(maxlen=100)
 
         # Setup routes
         self._setup_routes()
@@ -114,6 +116,16 @@ class PlivoCallServer:
             self.ten_env.log_debug(message)
         else:
             print(f"DEBUG: {message}")
+
+    def _record_media_debug(self, event: str, **fields: str) -> None:
+        """Keep a bounded trace for diagnosing provider media handshakes."""
+        self.media_debug_events.append(
+            {
+                "at": datetime.now().isoformat(),
+                "event": event,
+                **fields,
+            }
+        )
 
     def _setup_routes(self):
         """Setup FastAPI routes"""
@@ -653,11 +665,19 @@ class PlivoCallServer:
                 }
             )
 
+        @self.app.get("/api/admin/media-debug")
+        async def media_debug(request: Request):
+            """Return the bounded media handshake trace for operators."""
+            if request.headers.get("x-admin-token") != self.config.plivo_auth_token:
+                raise HTTPException(status_code=401, detail="unauthorized")
+            return JSONResponse(content={"events": list(self.media_debug_events)})
+
         # WebSocket endpoint for media streaming
         @self.app.websocket("/media")
         async def websocket_endpoint(websocket: WebSocket):
             """WebSocket endpoint for Plivo media streaming"""
             self._log_info(f"WebSocket connection attempt from: {websocket.client}")
+            self._record_media_debug("connection_attempt")
 
             try:
                 # Log connection attempt
@@ -670,6 +690,7 @@ class PlivoCallServer:
                 # Accept the connection immediately
                 await websocket.accept()
                 self._log_info(f"WebSocket connection established: {websocket.client}")
+                self._record_media_debug("connection_accepted")
 
                 # Do not send arbitrary server->Plivo messages here. Plivo's
                 # bidirectional stream protocol only documents playAudio,
@@ -688,6 +709,9 @@ class PlivoCallServer:
                     # Parse Plivo media stream message
                     try:
                         message = json.loads(data)
+                        self._record_media_debug(
+                            "event_received", event=str(message.get("event", ""))
+                        )
 
                         if message.get("event") == "media":
                             # Extract audio payload
@@ -721,6 +745,7 @@ class PlivoCallServer:
 
                         elif message.get("event") == "start":
                             self._log_info(f"Media stream started: {message}")
+                            self._record_media_debug("start_received")
                             # Plivo format: {"event": "start", "start": {"streamId": "...", "callId": "..."}}
                             start = message.get("start", {})
                             stream_id = start.get("streamId") or message.get("streamId", "")
@@ -733,28 +758,41 @@ class PlivoCallServer:
                             await self.active_call_sessions.mark_streaming(
                                 call_uuid, stream_id, websocket
                             )
+                            self._record_media_debug("session_marked_streaming")
 
                             # Notify extension that websocket is connected
                             if (
                                 hasattr(self, "extension_instance")
                                 and self.extension_instance
                             ):
+                                self._record_media_debug("initialization_started")
                                 await self.extension_instance.on_websocket_connected(
                                     call_uuid
                                 )
+                                self._record_media_debug("initialization_finished")
                         elif message.get("event") == "stop":
                             self._log_info(f"Media stream stopped: {message}")
+                            self._record_media_debug("stop_received")
                             if call_uuid:
                                 await self._terminate_call(call_uuid, "media:stop")
                             break
 
                     except json.JSONDecodeError:
                         self._log_debug(f"Received non-JSON message: {data[:100]}...")
+                        self._record_media_debug("invalid_json")
                     except Exception as e:
                         self._log_error(f"Error processing media message: {e}")
+                        self._record_media_debug(
+                            "message_error",
+                            error_type=type(e).__name__,
+                            error=str(e),
+                        )
 
             except Exception as e:
                 self._log_error(f"WebSocket error: {e}")
+                self._record_media_debug(
+                    "websocket_error", error_type=type(e).__name__, error=str(e)
+                )
                 # Try to close the connection gracefully
                 try:
                     await websocket.close()
@@ -763,6 +801,7 @@ class PlivoCallServer:
             finally:
                 await self.active_call_sessions.detach_websocket(websocket)
                 self._log_info("WebSocket connection closed")
+                self._record_media_debug("connection_closed")
 
     async def start_server(self, host: str = "0.0.0.0", port: int = 9000):
         """Start the server with both HTTP and WebSocket support"""
