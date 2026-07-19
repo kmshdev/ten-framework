@@ -12,7 +12,7 @@ import sys
 from collections import deque
 from datetime import datetime
 from urllib.error import URLError
-from urllib.request import Request, urlopen
+from urllib.request import Request as UrlRequest, urlopen
 from typing import Optional
 
 import plivo
@@ -141,7 +141,7 @@ class PlivoCallServer:
                         "idempotency_key": f"media-debug:{datetime.now().timestamp_ns()}",
                     }
                 ).encode()
-                request = Request(
+                request = UrlRequest(
                     f"https://{self.config.plivo_public_server_url}/demo/transcripts",
                     data=payload,
                     headers={
