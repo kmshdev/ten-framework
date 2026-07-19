@@ -38,6 +38,7 @@
       "binding": "DB",
       "database_name": "superyou-demo",
       "database_id": "7cff4b44-5a74-419d-9042-0a70495f09d8",
+      "migrations_dir": "./d1-migrations",
     },
   ],
   // Brand knowledge base (product info + FAQs) embedded with bge-m3

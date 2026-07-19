@@ -47,6 +47,7 @@ npm install --no-fund --no-audit
 
 # --- 2. Deploy Worker + container image ------------------------------------
 log "Deploying to Cloudflare (uses the pre-built image from the managed registry)"
+npx wrangler d1 migrations apply superyou-demo --remote
 DEPLOY_LOG="$(mktemp)"
 npx wrangler deploy 2>&1 | tee "$DEPLOY_LOG"
 
