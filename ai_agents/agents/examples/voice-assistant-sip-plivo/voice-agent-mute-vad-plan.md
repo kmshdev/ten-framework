@@ -37,8 +37,10 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   `eleven_multilingual_v2` model for Maya.
 - [x] (2026-07-20 16:20 IST) Added replay of pending ElevenLabs text after an
   unexpected WebSocket disconnect and gated VAD interruption until first audio.
-- [ ] Deploy the repaired image and Worker, then verify production readiness and
-  live audio playback.
+- [x] (2026-07-20 16:37 IST) GitHub Actions run `29735314630` built the native
+  amd64 image, pushed it to Cloudflare, deployed the Worker, synchronized the
+  Maya voice secret, restarted production, and passed readiness, health, and
+  full graph verification.
 
 ## Surprises & Discoveries
 
@@ -158,6 +160,10 @@ Deployment evidence:
 - Post-deploy live checks: `/health` returned `healthy`, `/tenapp/readyz` returned
   `ready`, and `/api/calls` returned an empty active-call set at 2026-07-20 12:36
   IST.
+- Follow-up deployment live checks: `/health` returned `healthy`, `/tenapp/readyz`
+  returned `ready`, and `/api/calls` returned zero active calls at 2026-07-20
+  16:38 IST. Cloudflare recorded the Worker upload at 10:37 UTC and the secret
+  synchronization immediately afterward.
 - Live call `6d2e2fdf-ebd2-446e-ae3b-a942b8a1de23`: streaming, greeting transcript,
   `playAudio` chunks 1-3, and `playedStream` acknowledgements were recorded.
 
