@@ -92,6 +92,16 @@ class CallRegistryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(registry["call-1"].graph_id, "graph-1")
         self.assertEqual(registry["call-2"].graph_id, "graph-2")
 
+    async def test_streaming_call_can_bind_graph_before_media(self):
+        registry = CallRegistry()
+        session = await registry.bind_call_uuid("call-1")
+        await registry.mark_streaming("call-1", "stream-1", object())
+
+        self.assertIsNone(session.graph_id)
+        await registry.bind_graph("call-1", "graph-1")
+
+        self.assertEqual(registry["call-1"].graph_id, "graph-1")
+
     async def test_two_call_media_and_barge_in_are_isolated(self):
         registry = CallRegistry(capacity=2)
         first_socket = RecordingWebSocket()

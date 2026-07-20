@@ -10,6 +10,8 @@ class SarvamASRConfig(BaseModel):
     model: str = "saaras:v3"  # "saaras:v3" (recommended), "saarika:v2.5" (legacy)
     mode: str = "transcribe"  # saaras:v3 only: transcribe|translate|verbatim|translit|codemix
     sample_rate: int = 16000
+    vad_signals: bool = True
+    audio_encoding: str = "pcm_s16le"
     prompt: str | None = (
         None  # Optional prompt for STT translate (saaras models only)
     )

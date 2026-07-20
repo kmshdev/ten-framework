@@ -152,6 +152,7 @@ jobs:
           : "${PLIVO_AUTH_ID:?PLIVO_AUTH_ID secret is required}"
           : "${PLIVO_AUTH_TOKEN:?PLIVO_AUTH_TOKEN secret is required}"
           : "${PLIVO_FROM_NUMBER:?PLIVO_FROM_NUMBER secret is required}"
+          : "${SARVAM_API_KEY:?SARVAM_API_KEY secret is required}"
           : "${OPENAI_API_KEY:?OPENAI_API_KEY secret is required}"
           : "${ELEVENLABS_TTS_KEY:?ELEVENLABS_TTS_KEY secret is required}"
           jq -n \
@@ -231,7 +232,7 @@ jobs:
 
           smoke_call="staging-smoke-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           payload="$(jq -n --arg call_id "$smoke_call" '{call_id:$call_id,caller:"staging",role:"tool",content:"staging idempotency smoke",sequence:1,source_timestamp_ms:1,turn_id:0,idempotency_key:($call_id + ":1")}')"
-          for ignored in 1 2; do
+          for _ in 1 2; do
             curl --fail --silent --show-error \
               -X POST "$STAGING_URL/demo/transcripts" \
               -H "Content-Type: application/json" \
@@ -242,4 +243,4 @@ jobs:
             | jq -e '.messages | length == 1'
 
       - name: Publish staging URL
-        run: echo "### Staging deployment\n$STAGING_URL" >> "$GITHUB_STEP_SUMMARY"
+        run: printf '### Staging deployment\n%s\n' "$STAGING_URL" >> "$GITHUB_STEP_SUMMARY"

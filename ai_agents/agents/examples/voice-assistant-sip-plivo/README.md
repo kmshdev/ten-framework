@@ -18,8 +18,8 @@ A voice assistant that supports both inbound and outbound calls using Plivo SIP 
    - `PLIVO_FROM_NUMBER` - Your Plivo phone number (required)
    - `PLIVO_PUBLIC_SERVER_URL` - Your public server URL for webhooks and WebSocket connections (required) - Plivo uses this URL to send webhook requests and establish WebSocket connections for audio streaming. For local testing, you can use ngrok to get a public domain for your local port
 
-2. **Deepgram Account**: Get credentials from [Deepgram Console](https://console.deepgram.com/)
-   - `DEEPGRAM_API_KEY` - Your Deepgram API key (required)
+2. **Sarvam Account**: Get credentials from [Sarvam AI](https://dashboard.sarvam.ai/)
+   - `SARVAM_API_KEY` - Your Sarvam API key (required by the active hybrid graph)
 
 3. **OpenAI Account**: Get credentials from [OpenAI Platform](https://platform.openai.com/)
    - `OPENAI_API_KEY` - Your OpenAI API key (required)
@@ -47,7 +47,10 @@ PLIVO_AUTH_TOKEN=your_plivo_auth_token_here
 PLIVO_FROM_NUMBER=+1234567890
 PLIVO_PUBLIC_SERVER_URL=https://your-domain.com
 
-# Deepgram (required for speech-to-text)
+# Sarvam (required for the active hybrid graph's speech-to-text and VAD)
+SARVAM_API_KEY=your_sarvam_api_key_here
+
+# Deepgram (optional; used by the alternate Deepgram graph)
 DEEPGRAM_API_KEY=your_deepgram_api_key_here
 
 # OpenAI (required for language model)
@@ -175,7 +178,8 @@ The voice assistant is configured in `tenapp/property.json`:
 | `PLIVO_AUTH_TOKEN` | string | - | Your Plivo Auth Token (required) |
 | `PLIVO_FROM_NUMBER` | string | - | Your Plivo phone number (required) |
 | `PLIVO_PUBLIC_SERVER_URL` | string | - | Your public server URL for webhooks and WebSocket connections (required) - Plivo uses this for webhooks and audio streaming. Use ngrok for local testing |
-| `DEEPGRAM_API_KEY` | string | - | Deepgram API key (required) |
+| `SARVAM_API_KEY` | string | - | Sarvam API key for streaming ASR and VAD (required by the active hybrid graph) |
+| `DEEPGRAM_API_KEY` | string | - | Deepgram API key (optional alternate ASR graph) |
 | `OPENAI_API_KEY` | string | - | OpenAI API key (required) |
 | `OPENAI_MODEL` | string | - | OpenAI model name (optional) |
 | `OPENAI_PROXY_URL` | string | - | Proxy URL for OpenAI API (optional) |

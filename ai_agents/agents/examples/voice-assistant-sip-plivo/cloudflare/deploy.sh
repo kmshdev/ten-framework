@@ -24,8 +24,8 @@ read_env() {
   grep -E "^${1}=" "$ENV_FILE" | tail -1 | cut -d= -f2- | sed -e "s/^['\"]//" -e "s/['\"]$//"
 }
 
-REQUIRED_KEYS=(PLIVO_AUTH_ID PLIVO_AUTH_TOKEN PLIVO_FROM_NUMBER DEEPGRAM_API_KEY OPENAI_API_KEY ELEVENLABS_TTS_KEY)
-OPTIONAL_KEYS=(OPENAI_MODEL ELEVENLABS_VOICE_ID SARVAM_API_KEY WEATHERAPI_API_KEY)
+REQUIRED_KEYS=(PLIVO_AUTH_ID PLIVO_AUTH_TOKEN PLIVO_FROM_NUMBER SARVAM_API_KEY OPENAI_API_KEY ELEVENLABS_TTS_KEY)
+OPTIONAL_KEYS=(OPENAI_MODEL ELEVENLABS_VOICE_ID DEEPGRAM_API_KEY WEATHERAPI_API_KEY)
 
 for key in "${REQUIRED_KEYS[@]}"; do
   val="$(read_env "$key")"
@@ -38,7 +38,7 @@ for key in "${OPTIONAL_KEYS[@]}"; do
 done
 if [ "${#missing_optional[@]}" -gt 0 ]; then
   echo "NOTE: optional keys not set (ok for the default graph): ${missing_optional[*]}"
-  echo "      SARVAM_API_KEY is required for the va_in_sarvam_stack / va_in_hybrid_stack graphs."
+  echo "      DEEPGRAM_API_KEY is only required for the alternate Deepgram graph."
 fi
 
 # --- 1. Install Worker dependencies ----------------------------------------

@@ -118,17 +118,20 @@ class PlivoCallServer:
     def _setup_routes(self):
         """Setup FastAPI routes"""
 
-        async def initialize_media_session(call_uuid: str):
-            """Initialize TEN without blocking the provider media receive loop."""
+        async def initialize_media_session(call_uuid: str) -> bool:
+            """Initialize TEN and report failures to the media loop."""
             extension = getattr(self, "extension_instance", None)
             if not extension:
-                return
+                return False
             try:
                 await extension.on_websocket_connected(call_uuid)
             except Exception as error:
                 self._log_error(
                     f"Media initialization failed for {call_uuid}: {error}"
                 )
+                await self._terminate_call(call_uuid, "media:init-failed")
+                return False
+            return True
 
         @self.app.post("/api/call")
         async def create_call(request: Request):
@@ -746,7 +749,8 @@ class PlivoCallServer:
                                 hasattr(self, "extension_instance")
                                 and self.extension_instance
                             ):
-                                await initialize_media_session(call_uuid)
+                                if not await initialize_media_session(call_uuid):
+                                    break
                         elif message.get("event") == "stop":
                             self._log_info(f"Media stream stopped: {message}")
                             if call_uuid:

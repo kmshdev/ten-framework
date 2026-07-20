@@ -4,7 +4,7 @@ Production base URL: `https://superyou-voice-agent.gateway-worker-ai.workers.dev
 
 Staging base URL: `https://superyou-voice-agent-staging.gateway-worker-ai.workers.dev`
 
-> Architecture status: the coordinator and call-scoped graph routing are implemented, but concurrent-call readiness is not yet proven. The minimal dynamic graph lifecycle passes in staging; the full `va_in_hybrid_stack` graph still exceeds its startup budget. Do not treat API availability as proof of isolated concurrent media.
+> Architecture status: the coordinator owns the Plivo media server and starts one `va_in_hybrid_stack` graph per call. The graph is stopped when the call terminates. The deployed image must contain `SARVAM_API_KEY`; Sarvam VAD events finalize caller turns. Concurrent-call capacity remains intentionally limited by the call registry until a separate load test proves otherwise.
 
 This document is the exact, verified surface for integrating a frontend against the SuperYou voice-agent stack. Everything below was read directly from source — no invented endpoints. Source files are cited per section so you can jump straight to the implementation.
 
@@ -176,7 +176,7 @@ curl -X POST .../webhook/answer -d 'CallUUID=test&From=%2B917011457245&Direction
 wss://superyou-voice-agent.gateway-worker-ai.workers.dev/media
 ```
 
-This is Plivo's **Audio Streaming** protocol (bidirectional). Source: `server.py:550-656` (inbound handling) and `extension.py:395-611` (main_python extension, outbound send + barge-in).
+This is Plivo's **Audio Streaming** protocol (bidirectional). Source: `server.py:669-770` (inbound handling) and `extension.py:526-621` (main_python extension, outbound send + barge-in).
 
 ### Inbound events (Plivo → server)
 
@@ -186,10 +186,9 @@ This is Plivo's **Audio Streaming** protocol (bidirectional). Source: `server.py
 | `media` | `{"event":"media","streamId":"...","media":{"payload":"<base64 mulaw>","track":"inbound"}}` | Raw audio chunk, forwarded straight into the TEN ASR pipeline (`_forward_audio_to_ten`). |
 | `stop` | `{"event":"stop", ...}` | Stream ended. |
 
-The server also sends one immediate confirmation frame on connect:
-```json
-{"type": "connected", "message": "WebSocket connection established"}
-```
+The server does not send an application-level confirmation frame. It accepts the
+WebSocket and waits for Plivo's protocol `start` event; this avoids sending an
+unsupported message type on the bidirectional media stream.
 
 ### Outbound events (server → Plivo)
 
@@ -198,7 +197,11 @@ The server also sends one immediate confirmation frame on connect:
 | `playAudio` | `{"event":"playAudio","media":{"contentType":"audio/x-mulaw","sampleRate":8000,"payload":"<base64>"}}` | Every TTS chunk the agent speaks. **`contentType` MUST be the bare MIME type and `sampleRate` a separate numeric field** — Plivo silently drops frames that don't match this exact envelope (this was a real production bug; see `extension.py:593-606`). |
 | `clearAudio` | `{"event":"clearAudio","streamId":"..."}` | Sent on barge-in (caller interrupts mid-sentence) to flush any queued audio Plivo hasn't played yet. Source: `extension.py:395-398`. |
 
-**Audio format both directions:** `audio/x-mulaw` @ 8000 Hz, base64-encoded payload, matching the `contentType="audio/x-mulaw;rate=8000"` declared in the `<Stream>` XML from `/webhook/answer`.
+**Plivo audio format:** inbound media is μ-law at 8000 Hz. The coordinator decodes
+it to PCM16 before sending it to the call graph. Sarvam receives raw
+`pcm_s16le` at 8000 Hz with `vad_signals=true`; the coordinator converts TTS PCM16
+back to μ-law for Plivo's `playAudio` envelope. The `<Stream>` XML from
+`/webhook/answer` remains the Plivo-facing format contract.
 
 **A frontend embedding a live-listen feature would**: open this same `wss://.../media` URL is *not* an option (it's the Plivo-facing leg, single consumer). For a browser "listen in" experience, the sane integration point is polling `/demo/transcripts` (see §5) or piping recorded audio, since the raw media WS is 1:1 with the live Plivo call.
 

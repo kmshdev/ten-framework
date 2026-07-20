@@ -187,7 +187,9 @@
                   "model": "saaras:v3",
                   "mode": "codemix",
                   "language": "unknown",
-                  "sample_rate": 8000
+                  "sample_rate": 8000,
+                  "vad_signals": true,
+                  "audio_encoding": "pcm_s16le"
                 }
               }
             },
@@ -402,7 +404,9 @@
                   "model": "saaras:v3",
                   "mode": "codemix",
                   "language": "unknown",
-                  "sample_rate": 8000
+                  "sample_rate": 8000,
+                  "vad_signals": true,
+                  "audio_encoding": "pcm_s16le"
                 }
               }
             }
@@ -459,7 +463,7 @@
       },
       {
         "name": "plivo_coordinator",
-        "auto_start": false,
+        "auto_start": true,
         "singleton": true,
         "graph": {
           "nodes": [
@@ -487,7 +491,7 @@
       },
       {
         "name": "va_in_hybrid_stack",
-        "auto_start": true,
+        "auto_start": false,
         "singleton": false,
         "graph": {
           "nodes": [
@@ -502,7 +506,9 @@
                   "model": "saaras:v3",
                   "mode": "codemix",
                   "language": "unknown",
-                  "sample_rate": 8000
+                  "sample_rate": 8000,
+                  "vad_signals": true,
+                  "audio_encoding": "pcm_s16le"
                 }
               }
             },

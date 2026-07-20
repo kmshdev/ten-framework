@@ -121,7 +121,7 @@ class SarvamASRExtension(AsyncASRBaseExtension):
             # 8 kHz input is only supported via this connection-level param
             # (per-message AudioData sample_rate does not allow 8000).
             "sample_rate": str(self.config.sample_rate),
-            "vad_signals": "false",
+            "vad_signals": str(self.config.vad_signals).lower(),
         }
         if self.config.model.startswith("saaras") and self.config.mode:
             params["mode"] = self.config.mode
@@ -414,6 +414,7 @@ class SarvamASRExtension(AsyncASRBaseExtension):
             elif signal_type == "END_SPEECH":
                 if self._speaking:
                     self._speaking = False
+                    await self.finalize(None)
             else:
                 self.ten_env.log_debug(
                     f"Unknown VAD signal type: {signal_type}",
@@ -598,13 +599,7 @@ class SarvamASRExtension(AsyncASRBaseExtension):
                 "utf-8"
             )
 
-            audio_message = {
-                "audio": {
-                    "data": base64_audio,
-                    "encoding": "audio/wav",
-                    "sample_rate": self.config.sample_rate,
-                }
-            }
+            audio_message = self._build_audio_message(base64_audio)
 
             await self.ws.send_str(json.dumps(audio_message))
             return True
@@ -616,3 +611,14 @@ class SarvamASRExtension(AsyncASRBaseExtension):
             return False
         finally:
             frame.unlock_buf(buf)
+
+    def _build_audio_message(self, base64_audio: str) -> dict:
+        """Build the documented Sarvam streaming audio envelope."""
+        assert self.config is not None
+        return {
+            "audio": {
+                "data": base64_audio,
+                "encoding": self.config.audio_encoding,
+                "sample_rate": self.config.sample_rate,
+            }
+        }
