@@ -33,6 +33,10 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
 - Observation: Sarvam's event handler tracked `END_SPEECH` but never flushed ASR.
   Evidence: `sarvam_asr_python/extension.py` changed `_speaking` without calling
   `finalize()`.
+- Observation: the first staging rollout deployed the new Worker but reused the
+  previous container image because staging used a fixed Durable Object name.
+  Evidence: the run's expected revision was `19fe2903ef5617a2`, while
+  `/tenapp/readyz` reported `4105c05fc16ff35b`.
 
 ## Decision Log
 
@@ -50,12 +54,17 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   Rationale: the implementation sends raw little-endian PCM bytes without a WAV
   header, so `audio/wav` did not describe the actual payload.
   Date/Author: 2026-07-20 / implementation session.
+- Decision: include the staging image revision in the container instance name.
+  Rationale: Cloudflare Container instances are stateful; a stable staging name
+  can retain an older image across Worker deployments. Production keeps its
+  stable name because it is intentionally a single live instance.
+  Date/Author: 2026-07-20 / implementation session.
 
 ## Outcomes & Retrospective
 
-The code now restores the coordinator/worker boundary and adds focused Sarvam
-protocol behavior. Remaining work is automated end-to-end validation, deployment,
-and live-call acceptance. The plan must be updated with test and deployment output.
+The code restores the coordinator/worker boundary, adds focused Sarvam protocol
+behavior, and makes staging image identity explicit. Remaining work is a clean
+staging rollout, production deployment, and live-call acceptance.
 
 ## Context and Orientation
 
@@ -129,4 +138,3 @@ media forwarding. The Sarvam interface uses query parameter `vad_signals=true` a
 audio messages with `encoding=pcm_s16le`, `sample_rate=8000`, and base64 PCM data.
 The Plivo interface remains bidirectional μ-law/8 kHz audio with `playAudio`,
 `checkpoint`, and `clearAudio` server-to-provider messages.
-
