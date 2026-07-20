@@ -165,26 +165,25 @@ class ElevenLabsTTS2Synthesizer:
                         category=LOG_CATEGORY_VENDOR,
                     )
                     if not self._session_closing:
-                        self.ten_env.log_debug(
-                            "Websocket connection closed, will reconnect and replay pending text."
+                        await self._recover_connection(
+                            "Websocket connection closed"
                         )
-
-                        # Cancel all channel tasks
-                        for task in self.channel_tasks:
-                            task.cancel()
-                        await self._await_channel_tasks()
-
-                        # Reset all event states
-                        self._receive_ready_event.clear()
-                        self._connection_event.clear()
-                        self._connection_success = False
-                        self._session_started = False
-
-                        await self._requeue_pending_text()
-
-                        # Reset connection exception counter
-                        self._connect_exp_cnt = 0
                         continue
+                except Exception as e:
+                    # Provider errors are raised by _receive_loop (for
+                    # example a transient 5xx or a malformed vendor frame).
+                    # Previously they escaped the per-connection block and
+                    # permanently stopped the monitor, dropping the greeting
+                    # while the Plivo stream remained live.
+                    self.ten_env.log_error(
+                        f"vendor_status: connection task failed: {e}"
+                    )
+                    if self._session_closing:
+                        raise
+                    await self._recover_connection(
+                        f"Provider task failure ({type(e).__name__})"
+                    )
+                    continue
 
         except Exception as e:
             self.ten_env.log_debug(
@@ -198,6 +197,22 @@ class ElevenLabsTTS2Synthesizer:
                 "vendor_status:  connection end",
                 category=LOG_CATEGORY_VENDOR,
             )
+
+    async def _recover_connection(self, reason: str) -> None:
+        """Reset a failed provider connection and replay unfinished text."""
+        self.ten_env.log_warn(
+            f"{reason}; reconnecting ElevenLabs and replaying pending text"
+        )
+        for task in self.channel_tasks:
+            task.cancel()
+        await self._await_channel_tasks()
+        self._receive_ready_event.clear()
+        self._connection_event.clear()
+        self._connection_success = False
+        self._session_started = False
+        await self._requeue_pending_text()
+        self._connect_exp_cnt = 0
+        await asyncio.sleep(0.25)
 
     async def _await_channel_tasks(self) -> None:
         """Wait for channel tasks to complete"""
