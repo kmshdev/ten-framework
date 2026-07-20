@@ -155,6 +155,8 @@ jobs:
           : "${SARVAM_API_KEY:?SARVAM_API_KEY secret is required}"
           : "${OPENAI_API_KEY:?OPENAI_API_KEY secret is required}"
           : "${ELEVENLABS_TTS_KEY:?ELEVENLABS_TTS_KEY secret is required}"
+          ELEVENLABS_VOICE_ID="${ELEVENLABS_VOICE_ID:-pNInz6obpgDQGcFmaJgB}"
+          OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
           jq -n \
             --arg PLIVO_AUTH_ID "$PLIVO_AUTH_ID" \
             --arg PLIVO_AUTH_TOKEN "$PLIVO_AUTH_TOKEN" \

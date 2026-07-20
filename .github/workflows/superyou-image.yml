@@ -68,6 +68,8 @@ jobs:
           HUMAN_AGENT_NUMBER: ${{ secrets.HUMAN_AGENT_NUMBER }}
           WEATHERAPI_API_KEY: ${{ secrets.WEATHERAPI_API_KEY }}
         run: |
+          ELEVENLABS_VOICE_ID="${ELEVENLABS_VOICE_ID:-pNInz6obpgDQGcFmaJgB}"
+          OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}"
           jq -n \
             --arg PLIVO_AUTH_ID "$PLIVO_AUTH_ID" \
             --arg PLIVO_AUTH_TOKEN "$PLIVO_AUTH_TOKEN" \
