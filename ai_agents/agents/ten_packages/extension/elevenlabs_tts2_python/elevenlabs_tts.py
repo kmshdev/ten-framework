@@ -65,6 +65,10 @@ class ElevenLabsTTS2Synthesizer:
 
         self.cur_request_id = ""
         self.request_start_ts = None
+        # Keep text that has been handed to ElevenLabs until the provider sends
+        # its final response. A transport reconnect must replay the active
+        # request or a greeting can disappear after a 1006/1001 close.
+        self._pending_text_inputs = []
         # generate query parameters
         if self.config and self.config.params:
             param_map = [
@@ -162,7 +166,7 @@ class ElevenLabsTTS2Synthesizer:
                     )
                     if not self._session_closing:
                         self.ten_env.log_debug(
-                            "Websocket connection closed, will reconnect."
+                            "Websocket connection closed, will reconnect and replay pending text."
                         )
 
                         # Cancel all channel tasks
@@ -175,6 +179,8 @@ class ElevenLabsTTS2Synthesizer:
                         self._connection_event.clear()
                         self._connection_success = False
                         self._session_started = False
+
+                        await self._requeue_pending_text()
 
                         # Reset connection exception counter
                         self._connect_exp_cnt = 0
@@ -353,6 +359,7 @@ class ElevenLabsTTS2Synthesizer:
                         self.ten_env.log_info(
                             "Received final message from WebSocket"
                         )
+                        self._pending_text_inputs.clear()
                         return
 
                     if data.get("error"):
@@ -410,7 +417,33 @@ class ElevenLabsTTS2Synthesizer:
 
     async def send_text(self, text_data):
         """Send text (external interface)"""
+        self._pending_text_inputs.append(text_data)
         await self.text_input_queue.put(text_data)
+
+    async def _requeue_pending_text(self) -> None:
+        """Replay the active request after an unexpected provider disconnect."""
+        if not self._pending_text_inputs or self._session_closing:
+            return
+
+        while not self.text_input_queue.empty():
+            try:
+                self.text_input_queue.get_nowait()
+            except asyncio.QueueEmpty:
+                break
+
+        for text_data in self._pending_text_inputs:
+            await self.text_input_queue.put(text_data)
+
+        request_ids = sorted(
+            {
+                getattr(text_data, "request_id", "")
+                for text_data in self._pending_text_inputs
+            }
+        )
+        self.ten_env.log_warn(
+            "Replaying ElevenLabs request(s) after transport disconnect: "
+            f"{request_ids}"
+        )
 
     def cancel(self) -> None:
         """Cancel current connection, used for flush scenarios"""
@@ -442,6 +475,8 @@ class ElevenLabsTTS2Synthesizer:
 
     def _clear_queues(self) -> None:
         """Clear all queues to prevent old data from being processed"""
+        self._pending_text_inputs.clear()
+
         # Clear text queue
         while not self.text_input_queue.empty():
             try:

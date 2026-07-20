@@ -47,7 +47,7 @@
               "property": {
                 "params": {
                   "key": "${env:ELEVENLABS_TTS_KEY}",
-                  "model_id": "eleven_flash_v2_5",
+                  "model_id": "eleven_multilingual_v2",
                   "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
                   "output_format": "pcm_16000"
                 },
@@ -469,7 +469,7 @@
               "property": {
                 "params": {
                   "key": "${env:ELEVENLABS_TTS_KEY}",
-                  "model_id": "eleven_flash_v2_5",
+                  "model_id": "eleven_multilingual_v2",
                   "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
                   "output_format": "pcm_16000"
                 },
@@ -559,7 +559,7 @@
               "property": {
                 "params": {
                   "key": "${env:ELEVENLABS_TTS_KEY}",
-                  "model_id": "eleven_flash_v2_5",
+                  "model_id": "eleven_multilingual_v2",
                   "voice_id": "${env:ELEVENLABS_VOICE_ID|pNInz6obpgDQGcFmaJgB}",
                   "output_format": "pcm_16000"
                 },

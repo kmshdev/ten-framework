@@ -16,7 +16,7 @@
       "class_name": "SuperYouAgent",
       // Pre-built on GitHub Actions (native amd64) and pushed to the
       // Cloudflare managed registry - see .github/workflows/superyou-image.yml
-      "image": "registry.cloudflare.com/679181db809730be9077df80661a41bd/superyou-voice-agent:b4990b48e441cdbc3854b5f875eea3883a061e16",
+      "image": "registry.cloudflare.com/679181db809730be9077df80661a41bd/superyou-voice-agent:144c2f72de733a70cba42b6274dec059e6c077d6",
       // TEN runtime + Python STT/LLM/TTS extensions + Next.js need headroom
       // for real-time audio: 2 vCPU / 8 GiB.
       "instance_type": "standard-3",

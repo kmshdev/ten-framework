@@ -186,6 +186,19 @@ export class SuperYouAgent extends Container<Env> {
         );
         lastStatus = response.status;
         if (response.ok) return;
+
+        // The restored production image predates TEN's semantic /readyz
+        // endpoint. Its launcher /health is still a reliable signal that the
+        // launcher and child tenapp process have started.
+        if (response.status === 404) {
+          const launcherHealth = await this.containerFetch(
+            "http://container/health",
+            {},
+            8080,
+          );
+          lastStatus = launcherHealth.status;
+          if (launcherHealth.ok) return;
+        }
       } catch {
         lastStatus = 0;
       }

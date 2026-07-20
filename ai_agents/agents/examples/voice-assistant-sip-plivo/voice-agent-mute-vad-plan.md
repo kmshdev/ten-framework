@@ -30,6 +30,15 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   TEN Turn Detection guidance and implemented VAD-to-controller barge-in handling.
 - [x] (2026-07-20 12:37 IST) Rebuilt and deployed commit `c176536c0` to production;
   readiness, health, and full TEN graph smoke passed.
+- [x] (2026-07-20 16:10 IST) Confirmed Plivo `/media` is an application-owned
+  WebSocket route, not an invalid music endpoint; retained the bidirectional
+  μ-law/8 kHz stream contract.
+- [x] (2026-07-20 16:15 IST) Changed all TTS graph definitions to the explicit
+  `eleven_multilingual_v2` model for Maya.
+- [x] (2026-07-20 16:20 IST) Added replay of pending ElevenLabs text after an
+  unexpected WebSocket disconnect and gated VAD interruption until first audio.
+- [ ] Deploy the repaired image and Worker, then verify production readiness and
+  live audio playback.
 
 ## Surprises & Discoveries
 
@@ -67,6 +76,16 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   Evidence: staging attempt 2 passed minimal smoke, returned one 500 for the
   first full smoke, and three direct full-graph retries passed on revision
   `3daeedb51e13501d`.
+- Observation: current Plivo documentation uses `/stream` as an example URL,
+  while the URL path is supplied by the application. The `/media` route is
+  therefore valid when both the generated XML and WebSocket route agree.
+  Evidence: Plivo's `<Stream>` and bidirectional `playAudio` documentation plus
+  `server.py`'s `/media` route.
+- Observation: `eleven_flash_v2_5` is a valid multilingual real-time model, but
+  Maya's requested model is `eleven_multilingual_v2`; the voice ID does not
+  choose the model.
+  Evidence: ElevenLabs model documentation and the three `property.json` TTS
+  definitions.
 
 ## Decision Log
 
@@ -98,6 +117,21 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   can retain an older image across Worker deployments. Production keeps its
   stable name because it is intentionally a single live instance.
   Date/Author: 2026-07-20 / implementation session.
+- Decision: retain `/media` rather than rename it to `/stream`.
+  Rationale: Plivo treats the URL as an application WebSocket destination; the
+  existing route already accepts the documented bidirectional protocol. A path
+  rename would add deployment risk without changing audio behavior.
+  Date/Author: 2026-07-20 / implementation session.
+- Decision: replay pending ElevenLabs text only for unexpected transport closes,
+  while keeping `cancel()` destructive for intentional VAD interruption.
+  Rationale: reconnect recovery must prevent silent greetings, but barge-in must
+  not resurrect audio the caller explicitly interrupted.
+  Date/Author: 2026-07-20 / implementation session.
+- Decision: use `eleven_multilingual_v2` for Maya.
+  Rationale: it is the requested Multilingual v2 model; the existing Flash model
+  remains valid for latency-sensitive agents but is not the selected persona
+  contract.
+  Date/Author: 2026-07-20 / implementation session.
 
 ## Outcomes & Retrospective
 
@@ -105,6 +139,11 @@ The code restores the coordinator/worker boundary, adds focused Sarvam protocol
 behavior, makes staging image identity explicit, and is live in production. The
 remaining acceptance gap is operational: a caller must speak during a live call
 to verify the end-to-end Sarvam `START_SPEECH`/`END_SPEECH` turn.
+
+The follow-up repair adds transport replay and first-audio VAD gating. Syntax,
+JSON, and isolated turn-state tests pass locally; the repository's configured
+Python 3.14 environment does not have `pytest` or TEN runtime dependencies, so
+the full extension suite remains unavailable locally.
 
 Deployment evidence:
 

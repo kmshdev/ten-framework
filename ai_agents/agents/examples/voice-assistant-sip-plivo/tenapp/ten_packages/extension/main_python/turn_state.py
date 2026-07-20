@@ -19,13 +19,14 @@ class ConversationTurnState:
     speech_active: bool = False
     interruption_sent: bool = False
     turn_id: int = 0
+    agent_audio_started: bool = False
 
     def speech_started(self) -> bool:
         """Record speech onset and return whether playback must be interrupted."""
         should_interrupt = self.phase in {
             TurnPhase.AGENT_SPEAKING,
             TurnPhase.THINKING,
-        } and not self.interruption_sent
+        } and self.agent_audio_started and not self.interruption_sent
         self.speech_active = True
         self.phase = TurnPhase.USER_SPEAKING
         self.interruption_sent = True
@@ -57,4 +58,8 @@ class ConversationTurnState:
         self.phase = TurnPhase.AGENT_SPEAKING
         self.speech_active = False
         self.interruption_sent = False
+        self.agent_audio_started = False
 
+    def mark_agent_audio_started(self) -> None:
+        """Allow VAD to interrupt after the first outbound audio frame."""
+        self.agent_audio_started = True

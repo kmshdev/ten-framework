@@ -548,6 +548,7 @@ class MainControlExtension(AsyncExtension):
                 if not self.call_uuid:
                     ten_env.log_error("Dropping TTS frame before call_start")
                     return
+                self._turn_state.mark_agent_audio_started()
                 audio_frame.set_property_string("call_uuid", self.call_uuid)
                 audio_frame.set_dests(
                     [Loc("", self.config.coordinator_graph_id, "main_control")]
