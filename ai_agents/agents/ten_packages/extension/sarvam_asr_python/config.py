@@ -11,6 +11,8 @@ class SarvamASRConfig(BaseModel):
     mode: str = "transcribe"  # saaras:v3 only: transcribe|translate|verbatim|translit|codemix
     sample_rate: int = 16000
     vad_signals: bool = True
+    high_vad_sensitivity: bool = True
+    flush_signal: bool = True
     audio_encoding: str = "pcm_s16le"
     prompt: str | None = (
         None  # Optional prompt for STT translate (saaras models only)

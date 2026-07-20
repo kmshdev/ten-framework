@@ -26,6 +26,8 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   greeting, sent three Plivo `playAudio` chunks, and received playback acknowledgements.
 - [ ] Verify a human-spoken live turn through Sarvam VAD; the acceptance call had
   no caller speech, so no user transcript was expected or recorded.
+- [x] (2026-07-20 12:35 IST) Researched the official Plivo, Sarvam, TEN VAD, and
+  TEN Turn Detection guidance and implemented VAD-to-controller barge-in handling.
 
 ## Surprises & Discoveries
 
@@ -39,6 +41,21 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
 - Observation: Sarvam's event handler tracked `END_SPEECH` but never flushed ASR.
   Evidence: `sarvam_asr_python/extension.py` changed `_speaking` without calling
   `finalize()`.
+- Observation: Plivo playback was healthy, but the controller had no input-side
+  event path for immediate barge-in. The only interruption trigger was a text ASR
+  callback, which is too late when the caller starts speaking over TTS.
+  Evidence: the latest production transcript rows contain only Maya's greeting
+  and Plivo playback markers; no `user` rows or ASR event was recorded.
+- Observation: official Sarvam guidance recommends `high_vad_sensitivity=true`,
+  `vad_signals=true`, and the `flush_signal` capability for voice-agent barge-in;
+  its response examples use `START_SPEECH`/`END_SPEECH`, while the response table
+  also documents `speech_start`/`speech_end` names.
+  Evidence: Firecrawl scrapes of Sarvam's streaming guide and WebSocket reference
+  on 2026-07-20.
+- Observation: official Plivo guidance requires bidirectional `audio/x-mulaw` at
+  8 kHz and documents `clearAudio` as the interruption mechanism.
+  Evidence: Firecrawl scrapes of Plivo's audio streaming guide and protocol
+  reference on 2026-07-20.
 - Observation: the first staging rollout deployed the new Worker but reused the
   previous container image because staging used a fixed Durable Object name.
   Evidence: the run's expected revision was `19fe2903ef5617a2`, while
@@ -56,10 +73,19 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   path already model call-scoped ownership; this prevents ASR, LLM, memory, and
   TTS state from leaking between calls.
   Date/Author: 2026-07-20 / implementation session.
-- Decision: use Sarvam VAD events instead of adding local TEN VAD.
-  Rationale: Plivo supplies 8 kHz audio while the existing local VAD assumes
-  16 kHz; Sarvam already exposes speech-boundary events and avoids a new resampling
-  branch.
+- Decision: use Sarvam VAD as the input boundary and keep TEN's turn state machine
+  in `main_control`.
+  Rationale: Sarvam already receives the correctly decoded 8 kHz PCM and documents
+  voice-agent barge-in. The controller must still own interruption, transcript
+  commitment, and output phases so provider events cannot race TTS or reset turn
+  state. TEN Turn Detection remains useful for semantic finished/unfinished/wait
+  classification, but its documented model is English/Chinese and would be an
+  unnecessary dependency for this Hindi/English phone path.
+  Date/Author: 2026-07-20 / implementation session.
+- Decision: enable high-sensitivity VAD, explicit raw-PCM codec, and flush support.
+  Rationale: Sarvam documents the shorter silence boundary and explicit codec/
+  flush parameters for conversational agents; this reduces the window in which
+  Maya can continue speaking after a caller has started.
   Date/Author: 2026-07-20 / implementation session.
 - Decision: label outbound Sarvam audio as `pcm_s16le`.
   Rationale: the implementation sends raw little-endian PCM bytes without a WAV
@@ -105,13 +131,18 @@ port-9000 server. `on_websocket_connected()` starts and binds the call graph bef
 sending `call_start`. Worker audio frames are marked with `call_uuid` and routed to
 the coordinator graph.
 
-Sarvam configuration now exposes `vad_signals` and `audio_encoding`. The WebSocket
-URL enables VAD events. `END_SPEECH` flushes Sarvam once for an active utterance,
-and raw PCM is sent with the `pcm_s16le` encoding label.
+Sarvam configuration now exposes `vad_signals`, `high_vad_sensitivity`,
+`flush_signal`, and `audio_encoding`. VAD boundaries are forwarded as graph data
+to `main_control`, which owns a per-call `LISTENING -> USER_SPEAKING -> THINKING ->
+AGENT_SPEAKING` state machine. `START_SPEECH` clears LLM/TTS/Plivo playback once
+per user segment; `END_SPEECH` flushes Sarvam once for an active utterance, and
+raw PCM is sent with the `pcm_s16le` encoding label. Lowercase `speech_start` and
+`speech_end` provider variants are accepted as well.
 
-Focused tests cover graph binding, Sarvam URL parameters, PCM envelope shape, and
-duplicate speech-end events. The remaining integration test must simulate Plivo
-media through Sarvam output into one LLM/TTS turn.
+Focused tests cover graph binding, Sarvam URL parameters, PCM envelope shape,
+provider event variants, duplicate speech-end events, and one-interruption-per-
+speech-segment state transitions. The remaining integration test must simulate
+Plivo media through Sarvam output into one LLM/TTS turn.
 
 ## Concrete Steps
 

@@ -36,6 +36,7 @@ class SarvamVadProtocolTests(unittest.IsolatedAsyncioTestCase):
             log_info=lambda *args, **kwargs: None,
             log_warn=lambda *args, **kwargs: None,
             log_error=lambda *args, **kwargs: None,
+            send_data=AsyncMock(),
         )
 
     def test_websocket_url_enables_vad_signals(self):
@@ -43,6 +44,9 @@ class SarvamVadProtocolTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(query["sample_rate"], ["8000"])
         self.assertEqual(query["vad_signals"], ["true"])
+        self.assertEqual(query["high_vad_sensitivity"], ["true"])
+        self.assertEqual(query["flush_signal"], ["true"])
+        self.assertEqual(query["input_audio_codec"], ["pcm_s16le"])
 
     def test_audio_message_declares_raw_pcm(self):
         payload = b"\x01\x02\x03\x04"
@@ -68,6 +72,16 @@ class SarvamVadProtocolTests(unittest.IsolatedAsyncioTestCase):
         await self.extension._handle_events(
             {"data": {"signal_type": "END_SPEECH"}}
         )
+
+        self.assertFalse(self.extension._speaking)
+        self.extension.finalize.assert_awaited_once_with(None)
+        self.assertEqual(self.extension.ten_env.send_data.await_count, 2)
+
+    async def test_lowercase_speech_events_are_supported(self):
+        self.extension.finalize = AsyncMock()
+
+        await self.extension._handle_events({"type": "speech_start"})
+        await self.extension._handle_events({"type": "speech_end"})
 
         self.assertFalse(self.extension._speaking)
         self.extension.finalize.assert_awaited_once_with(None)

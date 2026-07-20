@@ -27,6 +27,7 @@ from ten_ai_base.message import (
 )
 from ten_runtime import (
     AsyncTenEnv,
+    Data,
     AudioFrame,
 )
 from ten_ai_base.const import (
@@ -122,6 +123,11 @@ class SarvamASRExtension(AsyncASRBaseExtension):
             # (per-message AudioData sample_rate does not allow 8000).
             "sample_rate": str(self.config.sample_rate),
             "vad_signals": str(self.config.vad_signals).lower(),
+            "high_vad_sensitivity": str(
+                self.config.high_vad_sensitivity
+            ).lower(),
+            "flush_signal": str(self.config.flush_signal).lower(),
+            "input_audio_codec": self.config.audio_encoding,
         }
         if self.config.model.startswith("saaras") and self.config.mode:
             params["mode"] = self.config.mode
@@ -392,7 +398,12 @@ class SarvamASRExtension(AsyncASRBaseExtension):
     async def _handle_events(self, data: dict) -> None:
         """Handle VAD (Voice Activity Detection) events."""
         event_data = data.get("data", {})
-        signal_type = event_data.get("signal_type")
+        signal_type = event_data.get("signal_type") or data.get("signal_type")
+        if not signal_type:
+            signal_type = {
+                "speech_start": "START_SPEECH",
+                "speech_end": "END_SPEECH",
+            }.get(data.get("type", ""))
 
         if not signal_type:
             self.ten_env.log_warn(
@@ -410,10 +421,12 @@ class SarvamASRExtension(AsyncASRBaseExtension):
             if signal_type == "START_SPEECH":
                 if not self._speaking:
                     self._speaking = True
+                    await self._send_vad_event(signal_type)
 
             elif signal_type == "END_SPEECH":
                 if self._speaking:
                     self._speaking = False
+                    await self._send_vad_event(signal_type)
                     await self.finalize(None)
             else:
                 self.ten_env.log_debug(
@@ -427,6 +440,14 @@ class SarvamASRExtension(AsyncASRBaseExtension):
                 category=LOG_CATEGORY_VENDOR,
             )
             raise
+
+    async def _send_vad_event(self, signal_type: str) -> None:
+        """Forward a provider speech boundary to the graph controller."""
+        data = Data.create("vad_event")
+        data.set_property_from_json(
+            None, json.dumps({"signal_type": signal_type})
+        )
+        await self.ten_env.send_data(data)
 
     async def _handle_error_message(self, data: dict) -> None:
         """Handle error messages from the API."""

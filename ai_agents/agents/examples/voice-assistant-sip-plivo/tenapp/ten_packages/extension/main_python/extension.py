@@ -34,6 +34,7 @@ from .agent.events import (
 from .helper import _send_cmd, _send_data, parse_sentences
 from .config import MainControlConfig
 from .memory import CallMemory
+from .turn_state import ConversationTurnState
 
 from ten_ai_base.struct import LLMMessageContent
 
@@ -150,7 +151,7 @@ class MainControlExtension(AsyncExtension):
         self.session_id: str = ""
         self.call_uuid: str = ""
         self.mode: str = "worker"
-        self._interrupted_utterance: bool = False
+        self._turn_state = ConversationTurnState()
         self._received_user_turn: bool = False
         self.memory: Optional[CallMemory] = None
         # Low-volume production diagnostics for the Plivo playback path.
@@ -429,11 +430,10 @@ class MainControlExtension(AsyncExtension):
         # arbitrary transcript length. This makes short commands such as
         # "stop" and "रुकिए" effective and avoids repeatedly flushing for
         # every revision of the same utterance.
-        if not self._interrupted_utterance:
+        if self._turn_state.transcript_observed():
             await self._interrupt()
-            self._interrupted_utterance = True
         if event.final:
-            self.turn_id += 1
+            self.turn_id = self._turn_state.commit_user_turn()
             language_instruction = self._language_instruction_for(event.text)
             llm_input = (
                 f"[{language_instruction} Questions about SuperYou itself, including "
@@ -444,7 +444,6 @@ class MainControlExtension(AsyncExtension):
             await self.agent.queue_llm_input(llm_input)
             self.memory.record_turn("user", event.text, self.turn_id)
             self._received_user_turn = True
-            self._interrupted_utterance = False
         await self._send_transcript("user", event.text, event.final, stream_id)
 
     @agent_event_handler(LLMResponseEvent)
@@ -508,6 +507,20 @@ class MainControlExtension(AsyncExtension):
             await self.agent.on_cmd(cmd)
 
     async def on_data(self, ten_env: AsyncTenEnv, data: Data):
+        if data.get_name() == "vad_event" and self.mode == "worker":
+            payload_json, _ = data.get_property_to_json(None)
+            payload = json.loads(payload_json or "{}")
+            signal_type = payload.get("signal_type", "")
+            if signal_type == "START_SPEECH":
+                if self._turn_state.speech_started():
+                    await self._interrupt()
+            elif signal_type == "END_SPEECH":
+                self._turn_state.speech_ended()
+            self.ten_env.log_info(
+                f"[MainControlExtension] VAD {signal_type}; "
+                f"phase={self._turn_state.phase.value}"
+            )
+            return
         if data.get_name() == "call_start" and self.mode == "worker":
             payload_json, _ = data.get_property_to_json(None)
             try:
@@ -615,6 +628,7 @@ class MainControlExtension(AsyncExtension):
             if self.memory and self.memory.call_uuid
             else self.session_id or "unscoped"
         )
+        self._turn_state.agent_output_started()
         request_id = f"tts-request-{call_scope}-{self.turn_id}"
         await _send_data(
             self.ten_env,

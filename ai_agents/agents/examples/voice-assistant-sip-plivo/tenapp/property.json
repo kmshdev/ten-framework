@@ -124,6 +124,14 @@
                       "extension": "main_control"
                     }
                   ]
+                },
+                {
+                  "name": "vad_event",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
                 }
               ]
             },
@@ -189,6 +197,8 @@
                   "language": "unknown",
                   "sample_rate": 8000,
                   "vad_signals": true,
+                  "high_vad_sensitivity": true,
+                  "flush_signal": true,
                   "audio_encoding": "pcm_s16le"
                 }
               }
@@ -292,6 +302,14 @@
               "data": [
                 {
                   "name": "asr_result",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                },
+                {
+                  "name": "vad_event",
                   "dest": [
                     {
                       "extension": "main_control"
@@ -406,6 +424,8 @@
                   "language": "unknown",
                   "sample_rate": 8000,
                   "vad_signals": true,
+                  "high_vad_sensitivity": true,
+                  "flush_signal": true,
                   "audio_encoding": "pcm_s16le"
                 }
               }
@@ -508,6 +528,8 @@
                   "language": "unknown",
                   "sample_rate": 8000,
                   "vad_signals": true,
+                  "high_vad_sensitivity": true,
+                  "flush_signal": true,
                   "audio_encoding": "pcm_s16le"
                 }
               }
@@ -609,6 +631,14 @@
               "data": [
                 {
                   "name": "asr_result",
+                  "dest": [
+                    {
+                      "extension": "main_control"
+                    }
+                  ]
+                },
+                {
+                  "name": "vad_event",
                   "dest": [
                     {
                       "extension": "main_control"
