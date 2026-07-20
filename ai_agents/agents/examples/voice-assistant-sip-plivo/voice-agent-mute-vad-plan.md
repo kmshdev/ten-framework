@@ -37,6 +37,11 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   previous container image because staging used a fixed Durable Object name.
   Evidence: the run's expected revision was `19fe2903ef5617a2`, while
   `/tenapp/readyz` reported `4105c05fc16ff35b`.
+- Observation: a fresh full-graph smoke can fail once while vendor extensions
+  initialize, then pass on immediate retry without a code or image change.
+  Evidence: staging attempt 2 passed minimal smoke, returned one 500 for the
+  first full smoke, and three direct full-graph retries passed on revision
+  `3daeedb51e13501d`.
 
 ## Decision Log
 
