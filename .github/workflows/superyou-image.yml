@@ -46,8 +46,46 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           sed -i -E "s|(superyou-voice-agent:)[A-Za-z0-9]+|\1${{ github.sha }}|" wrangler.jsonc
+          sed -i '/"compatibility_date"/a\  "vars": { "DEPLOY_REVISION": "${{ github.sha }}" },' wrangler.jsonc
           npx wrangler d1 migrations apply superyou-demo --remote
           npx wrangler deploy
+
+      - name: Synchronize production provider secrets
+        working-directory: ai_agents/agents/examples/voice-assistant-sip-plivo/cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PLIVO_AUTH_ID: ${{ secrets.PLIVO_AUTH_ID }}
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+          PLIVO_FROM_NUMBER: ${{ secrets.PLIVO_FROM_NUMBER }}
+          DEEPGRAM_API_KEY: ${{ secrets.DEEPGRAM_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          ELEVENLABS_TTS_KEY: ${{ secrets.ELEVENLABS_TTS_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          SARVAM_API_KEY: ${{ secrets.SARVAM_API_KEY }}
+          MEM0_API_KEY: ${{ secrets.MEM0_API_KEY }}
+          HUMAN_AGENT_NUMBER: ${{ secrets.HUMAN_AGENT_NUMBER }}
+          WEATHERAPI_API_KEY: ${{ secrets.WEATHERAPI_API_KEY }}
+        run: |
+          jq -n \
+            --arg PLIVO_AUTH_ID "$PLIVO_AUTH_ID" \
+            --arg PLIVO_AUTH_TOKEN "$PLIVO_AUTH_TOKEN" \
+            --arg PLIVO_FROM_NUMBER "$PLIVO_FROM_NUMBER" \
+            --arg PLIVO_PUBLIC_SERVER_URL "https://superyou-voice-agent.gateway-worker-ai.workers.dev" \
+            --arg DEEPGRAM_API_KEY "$DEEPGRAM_API_KEY" \
+            --arg OPENAI_API_KEY "$OPENAI_API_KEY" \
+            --arg OPENAI_MODEL "$OPENAI_MODEL" \
+            --arg ELEVENLABS_TTS_KEY "$ELEVENLABS_TTS_KEY" \
+            --arg ELEVENLABS_VOICE_ID "$ELEVENLABS_VOICE_ID" \
+            --arg SARVAM_API_KEY "$SARVAM_API_KEY" \
+            --arg MEM0_API_KEY "$MEM0_API_KEY" \
+            --arg HUMAN_AGENT_NUMBER "$HUMAN_AGENT_NUMBER" \
+            --arg WEATHERAPI_API_KEY "$WEATHERAPI_API_KEY" \
+            '{PLIVO_AUTH_ID:$PLIVO_AUTH_ID,PLIVO_AUTH_TOKEN:$PLIVO_AUTH_TOKEN,PLIVO_FROM_NUMBER:$PLIVO_FROM_NUMBER,PLIVO_PUBLIC_SERVER_URL:$PLIVO_PUBLIC_SERVER_URL,DEEPGRAM_API_KEY:$DEEPGRAM_API_KEY,OPENAI_API_KEY:$OPENAI_API_KEY,OPENAI_MODEL:$OPENAI_MODEL,ELEVENLABS_TTS_KEY:$ELEVENLABS_TTS_KEY,ELEVENLABS_VOICE_ID:$ELEVENLABS_VOICE_ID,SARVAM_API_KEY:$SARVAM_API_KEY,MEM0_API_KEY:$MEM0_API_KEY,HUMAN_AGENT_NUMBER:$HUMAN_AGENT_NUMBER,WEATHERAPI_API_KEY:$WEATHERAPI_API_KEY}' \
+            > .production-secrets.json
+          trap 'rm -f .production-secrets.json' EXIT
+          npx wrangler secret bulk .production-secrets.json
 
       - name: Restart production container onto the new image
         env:
