@@ -18,8 +18,14 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
 - [x] (2026-07-20 11:35 IST) Restored coordinator/worker graph ownership and worker
   TTS routing.
 - [x] (2026-07-20 11:35 IST) Enabled Sarvam VAD signals and raw PCM encoding.
-- [ ] Add and run the complete media-path regression suite.
-- [ ] Deploy through GitHub and Cloudflare and verify a real call.
+- [x] (2026-07-20 12:00 IST) Ran focused call-state tests, staging graph/data smoke,
+  and production graph/readiness gates.
+- [x] (2026-07-20 12:05 IST) Built and deployed the amd64 image through GitHub and
+  Cloudflare; production workflow `29721679456` passed.
+- [x] (2026-07-20 12:06 IST) Verified a live call reached streaming, persisted Maya's
+  greeting, sent three Plivo `playAudio` chunks, and received playback acknowledgements.
+- [ ] Verify a human-spoken live turn through Sarvam VAD; the acceptance call had
+  no caller speech, so no user transcript was expected or recorded.
 
 ## Surprises & Discoveries
 
@@ -68,9 +74,19 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
 ## Outcomes & Retrospective
 
 The code restores the coordinator/worker boundary, adds focused Sarvam protocol
-behavior, makes staging image identity explicit, and verifies the current staging
-revision manually through the complete graph/data smoke sequence. Remaining work
-is production deployment and live-call acceptance.
+behavior, makes staging image identity explicit, and is live in production. The
+remaining acceptance gap is operational: a caller must speak during a live call
+to verify the end-to-end Sarvam `START_SPEECH`/`END_SPEECH` turn.
+
+Deployment evidence:
+
+- Staging image/data smoke: workflow `29721244762` built revision `b802db3c229cc269`;
+  direct current-revision smoke passed after the runner hit a transient Cloudflare
+  1101 during its first health request.
+- Production deploy: workflow `29721679456` passed build, registry push, D1 migration,
+  Worker deploy, container restart, readiness, and full graph smoke.
+- Live call `6d2e2fdf-ebd2-446e-ae3b-a942b8a1de23`: streaming, greeting transcript,
+  `playAudio` chunks 1-3, and `playedStream` acknowledgements were recorded.
 
 ## Context and Orientation
 
