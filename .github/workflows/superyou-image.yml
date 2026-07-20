@@ -48,3 +48,44 @@ jobs:
           sed -i -E "s|(superyou-voice-agent:)[A-Za-z0-9]+|\1${{ github.sha }}|" wrangler.jsonc
           npx wrangler d1 migrations apply superyou-demo --remote
           npx wrangler deploy
+
+      - name: Restart production container onto the new image
+        env:
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+        run: |
+          curl --fail --silent --show-error \
+            -X POST "https://superyou-voice-agent.gateway-worker-ai.workers.dev/admin/restart" \
+            -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+            | jq -e '.restarted == true'
+
+      - name: Verify production readiness and full graph
+        env:
+          PLIVO_AUTH_TOKEN: ${{ secrets.PLIVO_AUTH_TOKEN }}
+        run: |
+          ready=false
+          for attempt in $(seq 1 40); do
+            if curl --fail --silent --show-error --max-time 15 \
+              "https://superyou-voice-agent.gateway-worker-ai.workers.dev/tenapp/readyz" \
+              | jq -e '.status == "ready"'; then
+              ready=true
+              break
+            fi
+            echo "waiting for production readiness ($attempt/40)"
+            sleep 5
+          done
+          test "$ready" = true
+          curl --fail --silent --show-error \
+            "https://superyou-voice-agent.gateway-worker-ai.workers.dev/health" \
+            | jq -e '.status == "healthy"'
+          full_graph_ready=false
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --max-time 130 \
+              -X POST "https://superyou-voice-agent.gateway-worker-ai.workers.dev/api/admin/graph-smoke?full=true" \
+              -H "x-admin-token: $PLIVO_AUTH_TOKEN" \
+              | jq -e '.ok == true and .stopped == true and .full == true and (.graph_id | length > 0)'; then
+              full_graph_ready=true
+              break
+            fi
+            echo "retrying production full TEN graph smoke ($attempt/3)"
+          done
+          test "$full_graph_ready" = true

@@ -68,8 +68,9 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
 ## Outcomes & Retrospective
 
 The code restores the coordinator/worker boundary, adds focused Sarvam protocol
-behavior, and makes staging image identity explicit. Remaining work is a clean
-staging rollout, production deployment, and live-call acceptance.
+behavior, makes staging image identity explicit, and verifies the current staging
+revision manually through the complete graph/data smoke sequence. Remaining work
+is production deployment and live-call acceptance.
 
 ## Context and Orientation
 
