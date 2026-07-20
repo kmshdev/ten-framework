@@ -28,6 +28,8 @@ TEN graph, and Sarvam's speech-boundary events finalize user turns.
   no caller speech, so no user transcript was expected or recorded.
 - [x] (2026-07-20 12:35 IST) Researched the official Plivo, Sarvam, TEN VAD, and
   TEN Turn Detection guidance and implemented VAD-to-controller barge-in handling.
+- [x] (2026-07-20 12:37 IST) Rebuilt and deployed commit `c176536c0` to production;
+  readiness, health, and full TEN graph smoke passed.
 
 ## Surprises & Discoveries
 
@@ -111,6 +113,12 @@ Deployment evidence:
   1101 during its first health request.
 - Production deploy: workflow `29721679456` passed build, registry push, D1 migration,
   Worker deploy, container restart, readiness, and full graph smoke.
+- Production VAD deploy: workflow `29723123674` passed build, registry push, D1
+  migration, Worker deploy, stable container restart, readiness, and full graph
+  smoke for commit `c176536c0`.
+- Post-deploy live checks: `/health` returned `healthy`, `/tenapp/readyz` returned
+  `ready`, and `/api/calls` returned an empty active-call set at 2026-07-20 12:36
+  IST.
 - Live call `6d2e2fdf-ebd2-446e-ae3b-a942b8a1de23`: streaming, greeting transcript,
   `playAudio` chunks 1-3, and `playedStream` acknowledgements were recorded.
 
