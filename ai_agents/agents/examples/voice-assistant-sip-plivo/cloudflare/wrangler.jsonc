@@ -3,6 +3,11 @@
   "name": "superyou-voice-agent",
   "main": "src/index.ts",
   "compatibility_date": "2026-06-01",
+  // Production must keep the stable container identity. Staging generates its
+  // own revision-specific config and does not use this file.
+  "vars": {
+    "DEPLOY_REVISION": "",
+  },
   "observability": {
     "enabled": true,
   },
