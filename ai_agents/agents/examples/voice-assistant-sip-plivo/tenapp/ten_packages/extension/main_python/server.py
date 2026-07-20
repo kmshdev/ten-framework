@@ -674,19 +674,10 @@ class PlivoCallServer:
             """WebSocket endpoint for Plivo media streaming"""
             try:
                 # Accept the connection immediately
-                # Plivo advertises the legacy audio.drachtio.org subprotocol.
-                # Echo it when present; otherwise some Plivo edges accept the
-                # TCP upgrade and then drop the stream before sending media.
-                requested_protocol = websocket.headers.get(
-                    "sec-websocket-protocol", ""
-                )
-                await websocket.accept(
-                    subprotocol=(
-                        "audio.drachtio.org"
-                        if "audio.drachtio.org" in requested_protocol
-                        else None
-                    )
-                )
+                # Plivo's media gateway does not require a negotiated
+                # subprotocol; accepting without one matches the known-good
+                # deployment and lets the gateway choose its protocol.
+                await websocket.accept()
                 self._log_info(f"WebSocket connection established: {websocket.client}")
 
                 # Check for required query parameters (Plivo sends these)
