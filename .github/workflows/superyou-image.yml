@@ -46,7 +46,6 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           sed -i -E "s|(superyou-voice-agent:)[A-Za-z0-9]+|\1${{ github.sha }}|" wrangler.jsonc
-          sed -i '/"compatibility_date"/a\  "vars": { "DEPLOY_REVISION": "${{ github.sha }}" },' wrangler.jsonc
           npx wrangler d1 migrations apply superyou-demo --remote
           npx wrangler deploy
 
